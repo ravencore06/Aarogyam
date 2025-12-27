@@ -211,6 +211,60 @@
         "uploadDateTime",
         "fileUrl"
       ]
+    },
+    "Notification": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Notification",
+      "type": "object",
+      "description": "Represents a notification or reminder for a patient.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Notification entity."
+        },
+        "patientId": {
+          "type": "string",
+          "description": "The UID of the authenticated user (patient)."
+        },
+        "type": {
+          "type": "string",
+          "description": "Type of notification (e.g., 'Medication', 'Appointment').",
+          "enum": [
+            "Medication",
+            "Appointment"
+          ]
+        },
+        "title": {
+          "type": "string",
+          "description": "The main title of the notification (e.g., medicine name)."
+        },
+        "reminderTime": {
+          "type": "string",
+          "description": "The scheduled time for the reminder.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "Status of the notification (e.g., 'Pending', 'Completed', 'Snoozed').",
+          "enum": [
+            "Pending",
+            "Completed",
+            "Snoozed"
+          ]
+        },
+        "relatedId": {
+          "type": "string",
+          "description": "ID of the related entity (e.g., prescription or appointment ID)."
+        }
+      },
+      "required": [
+        "id",
+        "patientId",
+        "type",
+        "title",
+        "reminderTime",
+        "status"
+      ]
     }
   },
   "auth": {
@@ -293,6 +347,26 @@
             {
               "name": "uploadId",
               "description": "The unique ID of the upload."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/patients/{patientId}/notifications/{notificationId}",
+        "definition": {
+          "entityName": "Notification",
+          "schema": {
+            "$ref": "#/backend/entities/Notification"
+          },
+          "description": "Stores notifications for a specific patient. Uses path-based ownership for security.",
+          "params": [
+            {
+              "name": "patientId",
+              "description": "The UID of the authenticated user (patient)."
+            },
+            {
+              "name": "notificationId",
+              "description": "The unique ID of the notification."
             }
           ]
         }
