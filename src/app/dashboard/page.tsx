@@ -64,6 +64,7 @@ import { Shield } from 'lucide-react';
 import React, { useState } from 'react';
 import { AddPrescriptionModal } from '@/components/dashboard/add-prescription-modal';
 import { collection } from 'firebase/firestore';
+import Link from 'next/link';
 
 const appointments = [
   {
@@ -112,6 +113,10 @@ export default function DashboardPage() {
     router.push('/');
     return null;
   }
+  
+  const handleNavigation = (path: string) => {
+    router.push(path);
+  };
 
   return (
     <SidebarProvider>
@@ -126,10 +131,10 @@ export default function DashboardPage() {
         <SidebarContent>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton isActive>Dashboard</SidebarMenuButton>
+              <SidebarMenuButton onClick={() => handleNavigation('/dashboard')} isActive>Dashboard</SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton>Prescriptions</SidebarMenuButton>
+              <SidebarMenuButton onClick={() => handleNavigation('/dashboard/prescriptions')}>Prescriptions</SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton>Appointments</SidebarMenuButton>
@@ -228,8 +233,11 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
               <div className="lg:col-span-2">
                 <Card>
-                  <CardHeader>
+                  <CardHeader className="flex items-center justify-between">
                     <CardTitle>Current Medications</CardTitle>
+                    <Link href="/dashboard/prescriptions">
+                       <Button variant="link">View All</Button>
+                    </Link>
                   </CardHeader>
                   <CardContent>
                     <Table>
@@ -250,7 +258,7 @@ export default function DashboardPage() {
                             </TableCell>
                           </TableRow>
                         )}
-                        {!medicationsLoading && medications && medications.map((med, index) => (
+                        {!medicationsLoading && medications && medications.slice(0,5).map((med, index) => (
                           <TableRow key={index}>
                             <TableCell>{med.medicineName}</TableCell>
                             <TableCell>{med.dosage}</TableCell>
