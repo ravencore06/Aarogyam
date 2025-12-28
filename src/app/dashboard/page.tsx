@@ -43,6 +43,7 @@ import {
   Upload,
   User,
   Video,
+  LogOut,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import {
@@ -92,7 +93,7 @@ const uploads = [
 ];
 
 export default function DashboardPage() {
-  const { user, isUserLoading } = useUser();
+  const { user, isUserLoading, auth } = useUser();
   const router = useRouter();
   const firestore = useFirestore();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -143,7 +144,7 @@ export default function DashboardPage() {
               <SidebarMenuButton onClick={() => handleNavigation('/dashboard/doctors')}>Doctors</SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton>Settings</SidebarMenuButton>
+              <SidebarMenuButton onClick={() => handleNavigation('/dashboard/settings')}>Settings</SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarContent>
@@ -160,7 +161,7 @@ export default function DashboardPage() {
                 Patient ID: {user.uid.slice(0, 7)}
               </p>
             </div>
-            <Settings className="w-5 h-5" />
+            <Button variant="ghost" size="icon" onClick={() => auth?.signOut()}><LogOut className="w-5 h-5" /></Button>
           </div>
         </SidebarFooter>
       </Sidebar>
@@ -357,5 +358,3 @@ export default function DashboardPage() {
     </SidebarProvider>
   );
 }
-
-    

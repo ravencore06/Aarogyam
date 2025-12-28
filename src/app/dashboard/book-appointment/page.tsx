@@ -12,6 +12,7 @@ import {
   ChevronRight,
   Check,
   Loader2,
+  LogOut,
 } from 'lucide-react';
 import {
   collection,
@@ -56,7 +57,7 @@ const timeSlots = [
 ];
 
 export default function BookAppointmentPage() {
-  const { user, isUserLoading } = useUser();
+  const { user, isUserLoading, auth } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
@@ -292,7 +293,7 @@ export default function BookAppointmentPage() {
   const getStepTitle = () => {
     switch (step) {
       case 1: return 'Select a Doctor';
-      case 2: return `Select Date & Time for ${selectedDoctor?.name}`;
+      case 2: return `Select Date &amp; Time for ${selectedDoctor?.name}`;
       case 3: return 'Finalize Your Booking';
       case 4: return 'Booking Confirmed';
       default: return 'Book Appointment';
@@ -329,7 +330,7 @@ export default function BookAppointmentPage() {
               <SidebarMenuButton onClick={() => handleNavigation('/dashboard/doctors')}>Doctors</SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton>Settings</SidebarMenuButton>
+              <SidebarMenuButton onClick={() => handleNavigation('/dashboard/settings')}>Settings</SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarContent>
@@ -344,7 +345,7 @@ export default function BookAppointmentPage() {
               <p className="text-sm font-semibold">Sarah Noor</p>
               <p className="text-xs text-muted-foreground">Patient ID: {user.uid.slice(0, 7)}</p>
             </div>
-            <Settings className="w-5 h-5" />
+            <Button variant="ghost" size="icon" onClick={() => auth?.signOut()}><LogOut className="w-5 h-5" /></Button>
           </div>
         </SidebarFooter>
       </Sidebar>
@@ -369,5 +370,3 @@ export default function BookAppointmentPage() {
     </SidebarProvider>
   );
 }
-
-    

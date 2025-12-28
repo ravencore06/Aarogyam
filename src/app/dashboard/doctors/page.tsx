@@ -45,12 +45,13 @@ import {
   X,
   MapPin,
   Briefcase,
+  LogOut,
 } from 'lucide-react';
 
 import type { Doctor } from '@/lib/doctors';
 
 export default function DoctorsPage() {
-  const { user, isUserLoading } = useUser();
+  const { user, isUserLoading, auth } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
 
@@ -158,8 +159,7 @@ export default function DoctorsPage() {
           </div>
           <div className="flex items-center space-x-2">
             <RadioGroupItem value="Female" id="gender-female" />
-            <Label htmlFor="gender-female">Female</Label>
-          </div>
+            <Label htmlFor="gender-female">Female</Label>          </div>
         </RadioGroup>
       </div>
       <div>
@@ -274,7 +274,7 @@ export default function DoctorsPage() {
               <SidebarMenuButton onClick={() => handleNavigation('/dashboard/doctors')} isActive>Doctors</SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton>Settings</SidebarMenuButton>
+              <SidebarMenuButton onClick={() => handleNavigation('/dashboard/settings')}>Settings</SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarContent>
@@ -289,7 +289,7 @@ export default function DoctorsPage() {
               <p className="text-sm font-semibold">Sarah Noor</p>
               <p className="text-xs text-muted-foreground">Patient ID: {user.uid.slice(0, 7)}</p>
             </div>
-            <Settings className="w-5 h-5" />
+            <Button variant="ghost" size="icon" onClick={() => auth?.signOut()}><LogOut className="w-5 h-5" /></Button>
           </div>
         </SidebarFooter>
       </Sidebar>
@@ -362,5 +362,3 @@ export default function DoctorsPage() {
     </SidebarProvider>
   );
 }
-
-    

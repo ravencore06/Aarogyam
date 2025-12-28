@@ -21,7 +21,7 @@
         "dateOfBirth": {
           "type": "string",
           "description": "Patient's date of birth.",
-          "format": "date-time"
+          "format": "date"
         },
         "gender": {
           "type": "string",
@@ -34,6 +34,10 @@
         "address": {
           "type": "string",
           "description": "Patient's address."
+        },
+        "bloodGroup": {
+          "type": "string",
+          "description": "Patient's blood group."
         }
       },
       "required": [
@@ -85,6 +89,11 @@
         "notes": {
           "type": "string",
           "description": "Additional notes about the prescription."
+        },
+        "status": {
+            "type": "string",
+            "description": "The current status of the prescription.",
+            "enum": ["Active", "Completed", "Emergency"]
         }
       },
       "required": [
@@ -127,9 +136,10 @@
           "type": "string",
           "description": "The current status of the appointment.",
           "enum": [
-            "pending",
-            "confirmed",
-            "cancelled"
+            "Pending",
+            "Confirmed",
+            "Cancelled",
+            "Completed"
           ]
         },
         "notes": {
@@ -160,7 +170,7 @@
           "type": "string",
           "description": "Doctor's full name."
         },
-        "specialization": {
+        "specialty": {
           "type": "string",
           "description": "Doctor's area of specialization."
         },
@@ -207,7 +217,7 @@
       "required": [
         "id",
         "name",
-        "specialization"
+        "specialty"
       ]
     },
     "Upload": {
@@ -305,6 +315,33 @@
         "reminderTime",
         "status"
       ]
+    },
+    "UserSettings": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User Settings",
+      "type": "object",
+      "description": "Stores user-specific settings and preferences.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier, matches the user's UID."
+        },
+        "notificationPreferences": {
+          "type": "object",
+          "properties": {
+            "medicationReminders": { "type": "boolean", "default": true },
+            "appointmentAlerts": { "type": "boolean", "default": true },
+            "labResults": { "type": "boolean", "default": false }
+          }
+        },
+        "privacySettings": {
+          "type": "object",
+          "properties": {
+            "shareDataWithDoctors": { "type": "boolean", "default": true }
+          }
+        }
+      },
+      "required": ["id"]
     }
   },
   "auth": {
@@ -322,7 +359,7 @@
           "schema": {
             "$ref": "#/backend/entities/Patient"
           },
-          "description": "Stores patient information.  The patientId is the user's UID from Firebase Auth.",
+          "description": "Stores patient information. The patientId is the user's UID from Firebase Auth.",
           "params": [
             {
               "name": "patientId",
@@ -426,9 +463,22 @@
             }
           ]
         }
+      },
+       {
+        "path": "/userSettings/{userId}",
+        "definition": {
+          "entityName": "UserSettings",
+          "schema": { "$ref": "#/backend/entities/UserSettings" },
+          "description": "Stores user-specific settings. The document ID is the user's UID.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The UID of the authenticated user."
+            }
+          ]
+        }
       }
     ],
     "reasoning": "The Firestore structure is designed to facilitate a secure and scalable Patient Health Dashboard application. It prioritizes authorization independence by using path-based ownership for patient-specific data (prescriptions, appointments, uploads) and avoids hierarchical authorization dependencies. This structure makes security rules simpler and more robust, enabling atomic operations (transactions/batches) and easier debugging. The use of path-based ownership (e.g., `/users/{userId}/prescriptions/{prescriptionId}`) ensures that only the authenticated patient can access their own data, enforcing a strong QAP. The structure is also designed to support integrity constraints such as ownership, timestamps and denormalized data."
   }
 }
-    

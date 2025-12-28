@@ -65,6 +65,7 @@ import {
   Upload,
   Video,
   Building,
+  LogOut,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -84,16 +85,17 @@ import { subDays, startOfDay, endOfDay } from 'date-fns';
 import { doctors } from '@/lib/doctors';
 
 
-type Status = 'Confirmed' | 'Pending' | 'Cancelled';
+type Status = 'Confirmed' | 'Pending' | 'Cancelled' | 'Completed';
 
 const statusColors: Record<Status, string> = {
   Confirmed: 'bg-green-100 text-green-800',
   Pending: 'bg-yellow-100 text-yellow-800',
   Cancelled: 'bg-red-100 text-red-800',
+  Completed: 'bg-blue-100 text-blue-800',
 };
 
 export default function AppointmentsPage() {
-  const { user, isUserLoading } = useUser();
+  const { user, isUserLoading, auth } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
 
@@ -185,7 +187,7 @@ export default function AppointmentsPage() {
               <SidebarMenuButton onClick={() => handleNavigation('/dashboard/doctors')}>Doctors</SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton>Settings</SidebarMenuButton>
+              <SidebarMenuButton onClick={() => handleNavigation('/dashboard/settings')}>Settings</SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarContent>
@@ -200,7 +202,7 @@ export default function AppointmentsPage() {
               <p className="text-sm font-semibold">Sarah Noor</p>
               <p className="text-xs text-muted-foreground">Patient ID: {user.uid.slice(0, 7)}</p>
             </div>
-            <Settings className="w-5 h-5" />
+            <Button variant="ghost" size="icon" onClick={() => auth?.signOut()}><LogOut className="w-5 h-5" /></Button>
           </div>
         </SidebarFooter>
       </Sidebar>
@@ -269,7 +271,7 @@ export default function AppointmentsPage() {
                     <TableRow>
                       <TableHead>Patient</TableHead>
                       <TableHead>Doctor</TableHead>
-                      <TableHead>Date & Time</TableHead>
+                      <TableHead>Date &amp; Time</TableHead>
                       <TableHead>Type</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
@@ -343,5 +345,3 @@ export default function AppointmentsPage() {
     </SidebarProvider>
   );
 }
-
-    

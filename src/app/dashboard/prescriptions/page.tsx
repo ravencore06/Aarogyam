@@ -64,6 +64,7 @@ import {
   Upload,
   X,
   FileSearch,
+  LogOut,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -90,7 +91,7 @@ const statusColors: Record<Status, string> = {
 };
 
 export default function PrescriptionsPage() {
-  const { user, isUserLoading } = useUser();
+  const { user, isUserLoading, auth } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
 
@@ -225,7 +226,7 @@ export default function PrescriptionsPage() {
               <SidebarMenuButton onClick={() => handleNavigation('/dashboard/doctors')}>Doctors</SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton>Settings</SidebarMenuButton>
+              <SidebarMenuButton onClick={() => handleNavigation('/dashboard/settings')}>Settings</SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarContent>
@@ -242,7 +243,7 @@ export default function PrescriptionsPage() {
                 Patient ID: {user.uid.slice(0, 7)}
               </p>
             </div>
-            <Settings className="w-5 h-5" />
+            <Button variant="ghost" size="icon" onClick={() => auth?.signOut()}><LogOut className="w-5 h-5" /></Button>
           </div>
         </SidebarFooter>
       </Sidebar>
@@ -254,12 +255,6 @@ export default function PrescriptionsPage() {
               <h1 className="text-xl font-bold">Prescriptions</h1>
             </div>
             <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon">
-                <Bell className="w-6 h-6" />
-              </Button>
-              <Button variant="ghost" size="icon">
-                <Upload className="w-6 h-6" />
-              </Button>
             </div>
           </header>
 
@@ -377,5 +372,3 @@ export default function PrescriptionsPage() {
     </SidebarProvider>
   );
 }
-
-    
