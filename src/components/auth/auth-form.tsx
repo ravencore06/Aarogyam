@@ -144,6 +144,7 @@ function AuthFormCore({
                     {...field}
                     className="pl-10 bg-white/50"
                     maxLength={12}
+                    suppressHydrationWarning
                   />
                 </div>
               </FormControl>
@@ -170,6 +171,7 @@ function AuthFormCore({
                     {...field}
                     className="pl-10"
                     maxLength={12}
+                    suppressHydrationWarning
                   />
                 </div>
               </FormControl>
@@ -190,6 +192,7 @@ function AuthFormCore({
                     variant="link"
                     className="p-0 h-auto text-sm text-blue-600 hover:text-blue-700"
                     onClick={() => setFormType('forgotPassword')}
+                    suppressHydrationWarning
                   >
                     Forgot password?
                   </Button>
@@ -203,6 +206,7 @@ function AuthFormCore({
                     placeholder="Enter your password"
                     {...field}
                     className="pr-10 pl-10"
+                    suppressHydrationWarning
                   />
                   <button
                     type="button"
@@ -211,6 +215,7 @@ function AuthFormCore({
                     aria-label={
                       showPassword ? 'Hide password' : 'Show password'
                     }
+                    suppressHydrationWarning
                   >
                     {showPassword ? (
                       <EyeOff className="h-5 w-5 text-gray-500" />
@@ -239,6 +244,7 @@ function AuthFormCore({
                       placeholder="Confirm your password"
                       {...field}
                       className="pr-10 pl-10"
+                      suppressHydrationWarning
                     />
                     <button
                       type="button"
@@ -251,6 +257,7 @@ function AuthFormCore({
                           ? 'Hide password'
                           : 'Show password'
                       }
+                      suppressHydrationWarning
                     >
                       {showConfirmPassword ? (
                         <EyeOff className="h-5 w-5 text-gray-500" />
@@ -289,6 +296,7 @@ function AuthFormCore({
             variant="link"
             className="p-0 h-auto font-semibold text-blue-600"
             onClick={() => setFormType('login')}
+            suppressHydrationWarning
           >
             Login
           </Button>
@@ -307,6 +315,7 @@ function AuthFormCore({
           onClick={() =>
             setFormType(formType === 'login' ? 'signup' : 'login')
           }
+          suppressHydrationWarning
         >
           {formType === 'login' ? 'Sign up' : 'Login'}
         </Button>
@@ -326,6 +335,7 @@ function AuthFormCore({
             type="submit"
             className="w-full font-semibold bg-blue-600 hover:bg-blue-700 text-white"
             disabled={loading}
+            suppressHydrationWarning
           >
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {getButtonText()}
@@ -349,5 +359,3 @@ export function AuthForm() {
     />
   );
 }
-
-    
