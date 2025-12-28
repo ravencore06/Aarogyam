@@ -182,7 +182,7 @@ export default function AppointmentsPage() {
               <SidebarMenuButton onClick={() => handleNavigation('/dashboard/appointments')} isActive>Appointments</SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton>Doctors</SidebarMenuButton>
+              <SidebarMenuButton onClick={() => handleNavigation('/dashboard/doctors')}>Doctors</SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton>Settings</SidebarMenuButton>
@@ -343,3 +343,5 @@ export default function AppointmentsPage() {
     </SidebarProvider>
   );
 }
+
+    

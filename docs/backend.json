@@ -172,6 +172,36 @@
           "type": "string",
           "description": "Doctor's email address.",
           "format": "email"
+        },
+        "gender": {
+          "type": "string",
+          "description": "Doctor's gender.",
+          "enum": ["Male", "Female", "Other"]
+        },
+        "experience": {
+          "type": "number",
+          "description": "Doctor's years of experience."
+        },
+        "rating": {
+          "type": "number",
+          "description": "Doctor's average rating."
+        },
+        "location": {
+          "type": "string",
+          "description": "Doctor's primary clinic location."
+        },
+        "isAvailableToday": {
+          "type": "boolean",
+          "description": "Indicates if the doctor is available today."
+        },
+        "acceptingNewPatients": {
+          "type": "boolean",
+          "description": "Indicates if the doctor is accepting new patients."
+        },
+        "avatar": {
+          "type": "string",
+          "description": "URL to the doctor's avatar image.",
+          "format": "uri"
         }
       },
       "required": [

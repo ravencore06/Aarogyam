@@ -140,7 +140,7 @@ export default function DashboardPage() {
               <SidebarMenuButton onClick={() => handleNavigation('/dashboard/appointments')}>Appointments</SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton>Doctors</SidebarMenuButton>
+              <SidebarMenuButton onClick={() => handleNavigation('/dashboard/doctors')}>Doctors</SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton>Settings</SidebarMenuButton>
@@ -357,3 +357,5 @@ export default function DashboardPage() {
     </SidebarProvider>
   );
 }
+
+    

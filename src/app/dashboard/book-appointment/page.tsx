@@ -21,6 +21,7 @@ import {
   Timestamp,
   runTransaction,
   doc,
+  serverTimestamp,
 } from 'firebase/firestore';
 
 import { useUser, useFirestore } from '@/firebase';
@@ -47,9 +48,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { add, format } from 'date-fns';
 
-import { doctors } from '@/lib/doctors';
-
-type Doctor = typeof doctors[0];
+import { doctors, Doctor } from '@/lib/doctors';
 
 const timeSlots = [
   '09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM',
@@ -76,6 +75,7 @@ export default function BookAppointmentPage() {
   React.useEffect(() => {
     if (selectedDoctor && selectedDate) {
       const fetchBookedSlots = async () => {
+        if (!firestore) return;
         setIsCheckingSlots(true);
         const startOfDay = new Date(selectedDate.setHours(0, 0, 0, 0));
         const endOfDay = new Date(selectedDate.setHours(23, 59, 59, 999));
@@ -127,7 +127,7 @@ export default function BookAppointmentPage() {
   };
 
   const handleConfirmBooking = async () => {
-    if (!user || !selectedDoctor || !selectedDate || !selectedTime) {
+    if (!user || !selectedDoctor || !selectedDate || !selectedTime || !firestore) {
       toast({ variant: 'destructive', title: 'Error', description: 'Missing booking details.' });
       return;
     }
@@ -326,7 +326,7 @@ export default function BookAppointmentPage() {
               <SidebarMenuButton onClick={() => handleNavigation('/dashboard/appointments')} isActive>Appointments</SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton>Doctors</SidebarMenuButton>
+              <SidebarMenuButton onClick={() => handleNavigation('/dashboard/doctors')}>Doctors</SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton>Settings</SidebarMenuButton>
@@ -369,3 +369,5 @@ export default function BookAppointmentPage() {
     </SidebarProvider>
   );
 }
+
+    
