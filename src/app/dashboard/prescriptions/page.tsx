@@ -219,7 +219,7 @@ export default function PrescriptionsPage() {
               <SidebarMenuButton onClick={() => handleNavigation('/dashboard/prescriptions')} isActive>Prescriptions</SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton>Appointments</SidebarMenuButton>
+              <SidebarMenuButton onClick={() => handleNavigation('/dashboard/appointments')}>Appointments</SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton>Doctors</SidebarMenuButton>
