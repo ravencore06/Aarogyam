@@ -153,6 +153,16 @@ service cloud.firestore {
       allow update: if isExistingOwner(patientId) && isPatientLinkImmutable();
       allow delete: if isExistingOwner(patientId);
     }
+    
+    /**
+     * @description Secures notifications for a specific patient.
+     * @path /patients/{patientId}/notifications/{notificationId}
+     * @allow (read, write) The user managing their own notifications.
+     * @principle Enforces document ownership for notifications.
+     */
+    match /patients/{patientId}/notifications/{notificationId} {
+      allow read, write: if isOwner(patientId);
+    }
 
     /**
      * @description Manages doctor profiles. This data is considered public and can be read by anyone,
@@ -163,16 +173,23 @@ service cloud.firestore {
      * @principle Provides public read access while preventing client-side modification of shared data.
      */
     match /doctors/{doctorId} {
-      allow get: if true;
-      allow list: if true;
-      // CRITICAL: Cannot implement owner-only writes. The 'Doctor' entity is missing an 'ownerId' or 'creatorId' field.
-      // Writes are disabled to prevent unauthorized modification. Enable writes only after implementing a
-      // secure admin or role-based system for managing doctor profiles.
-      allow create: if false; // TODO: Add admin/role validation once an ownership or permissions model is defined.
-      allow update: if false; // TODO: Add admin/role validation once an ownership or permissions model is defined.
-      allow delete: if false; // TODO: Add admin/role validation once an ownership or permissions model is defined.
+      allow get, list: if true;
+      allow create, update, delete: if false;
     }
     
+    /**
+     * @description Secures appointments in the top-level collection. 
+     *              This collection is used for booking and ensuring doctors' availability.
+     * @path /appointments/{appointmentId}
+     * @allow (read) Any authenticated user can read appointment data, necessary for checking availability.
+     * @allow (create) Any authenticated user can create a new appointment.
+     * @allow (update, delete) Only the patient who booked the appointment can update or delete it.
+     */
+    match /appointments/{appointmentId} {
+        allow read, create: if isSignedIn();
+        allow update, delete: if isOwner(resource.data.patientId);
+    }
+
     /**
      * @description Secures user-specific settings.
      * @path /userSettings/{userId}
