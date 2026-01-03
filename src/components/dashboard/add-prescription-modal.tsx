@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
 
 import {
   Dialog,
@@ -82,7 +82,7 @@ export function AddPrescriptionModal({
   };
 
   const onSubmit = async (data: PrescriptionFormValues) => {
-    if (!auth.currentUser) {
+    if (!auth.currentUser || !firestore) {
       toast({
         variant: 'destructive',
         title: 'Error',
@@ -93,53 +93,74 @@ export function AddPrescriptionModal({
 
     setLoading(true);
 
-    try {
-      let fileUrl = '';
-      if (file) {
-        const storage = getStorage();
-        const storageRef = ref(storage, `prescriptions/${auth.currentUser.uid}/${file.name}`);
-        const uploadResult = await uploadBytes(storageRef, file);
-        fileUrl = await getDownloadURL(uploadResult.ref);
-      }
+    const currentUser = auth.currentUser;
+    const prescriptionData = {
+      patientId: currentUser.uid,
+      medicineName: data.medicineName,
+      dosage: data.dosage,
+      frequency: data.frequency,
+      notes: data.notes || '',
+      attachmentUrl: '', // Initially empty
+      createdAt: serverTimestamp(),
+      status: 'Active',
+    };
 
-      const prescriptionData = {
-        patientId: auth.currentUser.uid,
-        medicineName: data.medicineName,
-        dosage: data.dosage,
-        frequency: data.frequency,
-        notes: data.notes || '',
-        attachmentUrl: fileUrl,
-        createdAt: serverTimestamp(),
-        status: 'Active',
-      };
-      
-      const colRef = collection(firestore, `patients/${auth.currentUser.uid}/prescriptions`);
-      addDoc(colRef, prescriptionData)
-        .catch(async (serverError) => {
+    try {
+      // 1. Add prescription document to Firestore immediately to get a document ID
+      const colRef = collection(firestore, `patients/${currentUser.uid}/prescriptions`);
+      const docRef = await addDoc(colRef, prescriptionData).catch(async (serverError) => {
           const permissionError = new FirestorePermissionError({
             path: colRef.path,
             operation: 'create',
             requestResourceData: prescriptionData,
           });
           errorEmitter.emit('permission-error', permissionError);
-        });
+          // re-throw to be caught by outer try/catch
+          throw serverError;
+      });
 
+      // 2. Close modal and show success toast immediately
       toast({
         title: 'Success!',
         description: 'Your prescription has been added.',
       });
-
       form.reset();
       setFile(null);
       onOpenChange(false);
+      setLoading(false);
+
+      // 3. Upload file in the background if it exists
+      if (file) {
+        const storage = getStorage();
+        const storageRef = ref(storage, `prescriptions/${currentUser.uid}/${docRef.id}/${file.name}`);
+        
+        // This part now runs in the background, not blocking the UI
+        uploadBytes(storageRef, file).then(uploadResult => {
+          getDownloadURL(uploadResult.ref).then(fileUrl => {
+            // 4. Update the Firestore document with the file URL
+            const documentToUpdateRef = doc(firestore, `patients/${currentUser.uid}/prescriptions`, docRef.id);
+            updateDoc(documentToUpdateRef, { attachmentUrl: fileUrl });
+          });
+        }).catch(uploadError => {
+            console.error("Error uploading file:", uploadError);
+            // Optionally: update the document to indicate upload failure or notify user
+             toast({
+                variant: 'destructive',
+                title: 'File Upload Failed',
+                description: 'Your prescription was saved, but the attachment failed to upload.',
+            });
+        });
+      }
+
     } catch (error: any) {
       console.error('Error adding prescription:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Uh oh! Something went wrong.',
-        description: error.message || 'Could not add prescription.',
-      });
-    } finally {
+      if (!error.name?.includes('FirebaseError')) {
+         toast({
+            variant: 'destructive',
+            title: 'Uh oh! Something went wrong.',
+            description: error.message || 'Could not add prescription.',
+         });
+      }
       setLoading(false);
     }
   };
