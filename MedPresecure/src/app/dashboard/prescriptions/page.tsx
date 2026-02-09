@@ -73,7 +73,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
-import { AddPrescriptionModal } from '@/components/dashboard/add-prescription-modal';
+// import { AddPrescriptionModal } from '@/components/dashboard/add-prescription-modal';
 import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/dashboard/sidebar';
 import { Header } from '@/components/dashboard/header';
@@ -220,8 +220,8 @@ export default function PrescriptionsPage() {
               size="sm"
               onClick={() => setStatusFilter(status)}
               className={`capitalize rounded-lg transition-smooth ${statusFilter === status
-                  ? 'bg-gradient-primary text-white border-none shadow-md hover:shadow-lg'
-                  : 'hover:bg-slate-50'
+                ? 'bg-gradient-primary text-white border-none shadow-md hover:shadow-lg'
+                : 'hover:bg-slate-50'
                 }`}
             >
               {status}
@@ -238,7 +238,7 @@ export default function PrescriptionsPage() {
 
   return (
     <SidebarProvider>
-      <AddPrescriptionModal isOpen={isModalOpen} onOpenChange={setIsModalOpen} />
+      {/* <AddPrescriptionModal isOpen={isModalOpen} onOpenChange={setIsModalOpen} /> */}
       <Sidebar />
       <SidebarInset>
         <div className="flex flex-col min-h-screen bg-slate-50">
@@ -251,9 +251,10 @@ export default function PrescriptionsPage() {
                 <h2 className="text-2xl font-bold text-slate-900">Prescription Archive</h2>
                 <p className="text-sm text-slate-600 mt-1">Manage, track, and refill your medical history securely.</p>
               </div>
-              <Button onClick={() => setIsModalOpen(true)} className="bg-gradient-primary hover:shadow-lg transition-smooth">
-                <Plus className="mr-2 h-4 w-4" /> Add New Prescription
-              </Button>
+              <div className="flex items-center gap-3 px-4 py-2 bg-blue-50 border border-blue-100 rounded-xl text-blue-700">
+                <Info className="w-4 h-4" />
+                <span className="text-xs font-bold uppercase tracking-wider">Prescriptions are issued by hospitals</span>
+              </div>
             </div>
 
             {/* Filters */}
