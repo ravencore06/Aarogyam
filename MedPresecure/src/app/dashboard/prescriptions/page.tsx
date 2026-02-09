@@ -72,30 +72,20 @@ import {
   Siren,
   Loader2,
 } from 'lucide-react';
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  SidebarProvider,
-  SidebarInset,
-  SidebarFooter,
-  SidebarSeparator,
-  SidebarTrigger,
-} from '@/components/ui/sidebar';
+import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { AddPrescriptionModal } from '@/components/dashboard/add-prescription-modal';
 import { useRouter } from 'next/navigation';
+import { Sidebar } from '@/components/dashboard/sidebar';
+import { Header } from '@/components/dashboard/header';
 import { analyzePrescription, PrescriptionInsightsOutput } from '@/ai/flows/prescription-insights-flow';
 import { Skeleton } from '@/components/ui/skeleton';
 
 type Status = 'Active' | 'Completed' | 'Emergency';
 
 const statusColors: Record<Status, string> = {
-  Active: 'bg-green-100 text-green-800',
-  Completed: 'bg-blue-100 text-blue-800',
-  Emergency: 'bg-red-100 text-red-800',
+  Active: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+  Completed: 'bg-blue-50 text-blue-700 border border-blue-200',
+  Emergency: 'bg-rose-50 text-rose-700 border border-rose-200',
 };
 
 type Prescription = {
@@ -210,19 +200,10 @@ export default function PrescriptionsPage() {
   }
 
   const renderFilters = (isMobile = false) => (
-    <div className={`flex ${isMobile ? 'flex-col space-y-4' : 'flex-row items-center space-x-4'}`}>
-      <div className="relative w-full">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-        <Input
-          placeholder="Search by medicine..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10"
-        />
-      </div>
+    <div className={`flex ${isMobile ? 'flex-col space-y-4' : 'flex-row items-center space-x-3'}`}>
       <Select value={dateRange} onValueChange={setDateRange}>
-        <SelectTrigger className="w-full md:w-[180px]">
-          <SelectValue placeholder="Select date range" />
+        <SelectTrigger className="w-full md:w-[180px] rounded-xl shadow-sm">
+          <SelectValue placeholder="Date Range" />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All Time</SelectItem>
@@ -230,24 +211,27 @@ export default function PrescriptionsPage() {
           <SelectItem value="6m">Last 6 Months</SelectItem>
         </SelectContent>
       </Select>
-      <div className="flex items-center space-x-2">
+      <div className="flex items-center gap-2">
         {(['all', 'Active', 'Completed', 'Emergency'] as const).map(
           (status) => (
             <Button
               key={status}
-              variant={statusFilter === status ? 'default' : 'outline'}
+              variant="outline"
               size="sm"
               onClick={() => setStatusFilter(status)}
-              className="capitalize"
+              className={`capitalize rounded-lg transition-smooth ${statusFilter === status
+                  ? 'bg-gradient-primary text-white border-none shadow-md hover:shadow-lg'
+                  : 'hover:bg-slate-50'
+                }`}
             >
               {status}
             </Button>
           )
         )}
       </div>
-      <Button variant="ghost" onClick={resetFilters}>
+      <Button variant="ghost" size="sm" onClick={resetFilters} className="text-slate-600 hover:text-slate-900">
         <X className="mr-2 h-4 w-4" />
-        Reset
+        Clear
       </Button>
     </div>
   );
@@ -255,77 +239,45 @@ export default function PrescriptionsPage() {
   return (
     <SidebarProvider>
       <AddPrescriptionModal isOpen={isModalOpen} onOpenChange={setIsModalOpen} />
-      <Sidebar>
-        <SidebarHeader>
-          <div className="flex items-center gap-2">
-            <Shield className="w-6 h-6 text-primary" />
-            <span className="text-lg font-semibold">Aarogyam</span>
-          </div>
-        </SidebarHeader>
-        <SidebarContent>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton onClick={() => handleNavigation('/dashboard')}>Dashboard</SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton onClick={() => handleNavigation('/dashboard/prescriptions')} isActive>Prescriptions</SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton onClick={() => handleNavigation('/dashboard/appointments')}>Appointments</SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton onClick={() => handleNavigation('/dashboard/doctors')}>Doctors</SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton onClick={() => handleNavigation('/dashboard/chat')}>AI Health Assistant</SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton onClick={() => handleNavigation('/dashboard/settings')}>Settings</SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarContent>
-        <SidebarFooter>
-          <SidebarSeparator />
-          <div className="flex items-center gap-3 p-2">
-            <Avatar>
-              <AvatarImage src="https://i.pravatar.cc/300" alt="User avatar" />
-              <AvatarFallback>SN</AvatarFallback>
-            </Avatar>
-            <div className="flex-1">
-              <p className="text-sm font-semibold">Sarah Noor</p>
-              <p className="text-xs text-muted-foreground">
-                Patient ID: {user.uid.slice(0, 7)}
-              </p>
-            </div>
-            <Button variant="ghost" size="icon" onClick={() => auth?.signOut()}><LogOut className="w-5 h-5" /></Button>
-          </div>
-        </SidebarFooter>
-      </Sidebar>
+      <Sidebar />
       <SidebarInset>
         <div className="flex flex-col min-h-screen bg-slate-50">
-          <header className="sticky top-0 z-10 flex items-center justify-between h-16 px-6 bg-white border-b">
-            <div className="flex items-center gap-4">
-              <SidebarTrigger />
-              <h1 className="text-xl font-bold">Prescriptions</h1>
-            </div>
-            <div className="flex items-center gap-4">
-            </div>
-          </header>
+          <Header title="Prescription Archive" user={user} />
 
-          <main className="flex-1 p-6">
-            <Card>
-              <CardHeader>
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-                  <CardTitle>Prescription History</CardTitle>
-                  <div className="hidden md:flex md:items-center md:space-x-4 mt-4 md:mt-0">
+          <main className="flex-1 p-6 space-y-6">
+            {/* Header Section */}
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900">Prescription Archive</h2>
+                <p className="text-sm text-slate-600 mt-1">Manage, track, and refill your medical history securely.</p>
+              </div>
+              <Button onClick={() => setIsModalOpen(true)} className="bg-gradient-primary hover:shadow-lg transition-smooth">
+                <Plus className="mr-2 h-4 w-4" /> Add New Prescription
+              </Button>
+            </div>
+
+            {/* Filters */}
+            <Card className="border-none shadow-sm">
+              <CardContent className="pt-6">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div className="relative flex-1 max-w-md">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <Input
+                      placeholder="Search by medicine, doctor, or condition..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-11 h-11 bg-slate-50 border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-primary/20 transition-smooth shadow-sm"
+                    />
+                  </div>
+                  <div className="hidden md:flex items-center gap-3">
                     {renderFilters()}
                   </div>
-                  <div className="flex md:hidden items-center justify-between mt-4">
+                  <div className="md:hidden">
                     <Sheet>
                       <SheetTrigger asChild>
-                        <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" className="w-full rounded-xl">
                           <SlidersHorizontal className="mr-2 h-4 w-4" />
-                          Filter
+                          Filters
                         </Button>
                       </SheetTrigger>
                       <SheetContent>
@@ -340,84 +292,93 @@ export default function PrescriptionsPage() {
                         </div>
                       </SheetContent>
                     </Sheet>
-                    <Button onClick={() => setIsModalOpen(true)}>
-                      <Plus className="mr-2 h-4 w-4" /> Add New
-                    </Button>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Table */}
+            <Card className="border-none shadow-premium">
+              <CardHeader>
+                <CardTitle className="text-xl font-bold text-slate-900">Prescription History</CardTitle>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Medicine</TableHead>
-                      <TableHead>Dosage</TableHead>
-                      <TableHead>Frequency</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Action</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {isLoading ? (
-                      <TableRow>
-                        <TableCell colSpan={6} className="h-24 text-center">
-                          Loading prescriptions...
-                        </TableCell>
+                <div className="overflow-hidden rounded-xl border border-slate-100">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-slate-50 hover:bg-slate-50">
+                        <TableHead className="font-semibold text-slate-700">Medicine</TableHead>
+                        <TableHead className="font-semibold text-slate-700">Dosage</TableHead>
+                        <TableHead className="font-semibold text-slate-700">Frequency</TableHead>
+                        <TableHead className="font-semibold text-slate-700">Date</TableHead>
+                        <TableHead className="font-semibold text-slate-700">Status</TableHead>
+                        <TableHead className="text-right font-semibold text-slate-700">Actions</TableHead>
                       </TableRow>
-                    ) : filteredPrescriptions.length > 0 ? (
-                      filteredPrescriptions.map((p) => (
-                        <TableRow key={p.id}>
-                          <TableCell className="font-medium">
-                            {p.medicineName}
-                          </TableCell>
-                          <TableCell>{p.dosage}</TableCell>
-                          <TableCell>{p.frequency}</TableCell>
-                          <TableCell>
-                            {p.createdAt?.toDate().toLocaleDateString()}
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              className={
-                                statusColors[p.status as Status] ||
-                                'bg-gray-100 text-gray-800'
-                              }
-                            >
-                              {p.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <MoreVertical className="w-5 h-5" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent>
-                                <DropdownMenuItem onClick={() => handleViewDetails(p)}>View Details</DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                    </TableHeader>
+                    <TableBody>
+                      {isLoading ? (
+                        <TableRow>
+                          <TableCell colSpan={6} className="h-24 text-center text-slate-500">
+                            Loading prescriptions...
                           </TableCell>
                         </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell
-                          colSpan={6}
-                          className="h-24 text-center"
-                        >
-                          <div className="flex flex-col items-center justify-center space-y-2">
-                            <FileSearch className="h-12 w-12 text-gray-400" />
-                            <p className="font-semibold">No records found</p>
-                            <p className="text-sm text-gray-500">
-                              Try adjusting your filters to find what you're looking for.
-                            </p>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
+                      ) : filteredPrescriptions.length > 0 ? (
+                        filteredPrescriptions.map((p) => (
+                          <TableRow key={p.id} className="hover:bg-slate-50 transition-smooth">
+                            <TableCell className="font-medium text-slate-900">
+                              {p.medicineName}
+                            </TableCell>
+                            <TableCell className="text-slate-600">{p.dosage}</TableCell>
+                            <TableCell className="text-slate-600">{p.frequency}</TableCell>
+                            <TableCell className="text-slate-600">
+                              {p.createdAt?.toDate().toLocaleDateString()}
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                className={
+                                  statusColors[p.status as Status] ||
+                                  'bg-slate-100 text-slate-700 border-slate-200'
+                                }
+                              >
+                                {p.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="hover:bg-slate-100 rounded-lg">
+                                    <MoreVertical className="w-4 h-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="rounded-xl shadow-lg">
+                                  <DropdownMenuItem onClick={() => handleViewDetails(p)} className="rounded-lg">
+                                    <Bot className="w-4 h-4 mr-2" />
+                                    View AI Insights
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell
+                            colSpan={6}
+                            className="h-32 text-center"
+                          >
+                            <div className="flex flex-col items-center justify-center space-y-3">
+                              <FileSearch className="h-12 w-12 text-slate-300" />
+                              <p className="font-semibold text-slate-900">No prescriptions found</p>
+                              <p className="text-sm text-slate-500">
+                                Try adjusting your filters or add a new prescription.
+                              </p>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           </main>
@@ -425,11 +386,14 @@ export default function PrescriptionsPage() {
 
         <Sheet open={!!selectedPrescription} onOpenChange={(open) => !open && setSelectedPrescription(null)}>
           <SheetContent className="sm:max-w-lg overflow-y-auto">
-            <SheetHeader>
-              <SheetTitle className="flex items-center gap-2">
-                <Bot /> AI-Powered Insights
+            <SheetHeader className="space-y-3">
+              <SheetTitle className="flex items-center gap-2 text-xl">
+                <div className="p-2 bg-gradient-primary rounded-lg">
+                  <Bot className="w-5 h-5 text-white" />
+                </div>
+                AI-Powered Insights
               </SheetTitle>
-              <SheetDescription>
+              <SheetDescription className="text-slate-600">
                 This AI analysis is for informational purposes only and is not a substitute for professional medical advice.
               </SheetDescription>
             </SheetHeader>
@@ -445,42 +409,66 @@ export default function PrescriptionsPage() {
                 </div>
               ) : insights ? (
                 <>
-                  <div>
-                    <h3 className="font-semibold text-lg mb-2">Medication Details</h3>
-                    <div className="grid grid-cols-3 gap-2 text-sm p-3 bg-slate-50 rounded-md">
-                      <div><span className="font-medium text-gray-500 block">Medicine</span>{selectedPrescription?.medicineName}</div>
-                      <div><span className="font-medium text-gray-500 block">Dosage</span>{selectedPrescription?.dosage}</div>
-                      <div><span className="font-medium text-gray-500 block">Frequency</span>{selectedPrescription?.frequency}</div>
+                  <div className="bg-slate-50 rounded-xl p-5 border border-slate-100">
+                    <h3 className="font-semibold text-lg mb-3 text-slate-900">Medication Details</h3>
+                    <div className="grid grid-cols-3 gap-4 text-sm">
+                      <div>
+                        <span className="font-medium text-slate-500 block mb-1">Medicine</span>
+                        <span className="text-slate-900 font-medium">{selectedPrescription?.medicineName}</span>
+                      </div>
+                      <div>
+                        <span className="font-medium text-slate-500 block mb-1">Dosage</span>
+                        <span className="text-slate-900 font-medium">{selectedPrescription?.dosage}</span>
+                      </div>
+                      <div>
+                        <span className="font-medium text-slate-500 block mb-1">Frequency</span>
+                        <span className="text-slate-900 font-medium">{selectedPrescription?.frequency}</span>
+                      </div>
                     </div>
                   </div>
 
                   {insights.alerts && insights.alerts.length > 0 && (
-                    <div className="p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded-r-lg">
-                      <h3 className="font-semibold flex items-center gap-2 text-yellow-800"><Siren size={18} /> AI-Detected Alerts</h3>
-                      <ul className="mt-2 list-disc list-inside space-y-1 text-sm text-yellow-700">
-                        {insights.alerts.map((alert, i) => <li key={i}>({alert.level}) {alert.message}</li>)}
+                    <div className="p-4 bg-amber-50 border-l-4 border-amber-400 rounded-r-xl">
+                      <h3 className="font-semibold flex items-center gap-2 text-amber-800 mb-2">
+                        <Siren size={18} /> AI-Detected Alerts
+                      </h3>
+                      <ul className="mt-2 space-y-2 text-sm text-amber-700">
+                        {insights.alerts.map((alert, i) => (
+                          <li key={i} className="flex items-start gap-2">
+                            <span className="font-semibold">({alert.level})</span>
+                            <span>{alert.message}</span>
+                          </li>
+                        ))}
                       </ul>
                     </div>
                   )}
 
-                  <div className="space-y-4">
-                    <div>
-                      <h3 className="font-semibold flex items-center gap-2 mb-2"><Info size={18} /> Medicine Purpose</h3>
-                      <p className="text-sm text-gray-600">{insights.medicinePurpose}</p>
+                  <div className="space-y-5">
+                    <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
+                      <h3 className="font-semibold flex items-center gap-2 mb-2 text-blue-900">
+                        <Info size={18} /> Medicine Purpose
+                      </h3>
+                      <p className="text-sm text-blue-700">{insights.medicinePurpose}</p>
                     </div>
-                    <div>
-                      <h3 className="font-semibold flex items-center gap-2 mb-2"><ListChecks size={18} /> Intake Schedule</h3>
-                      <p className="text-sm text-gray-600">{insights.intakeSchedule}</p>
+                    <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100">
+                      <h3 className="font-semibold flex items-center gap-2 mb-2 text-emerald-900">
+                        <ListChecks size={18} /> Intake Schedule
+                      </h3>
+                      <p className="text-sm text-emerald-700">{insights.intakeSchedule}</p>
                     </div>
-                    <div>
-                      <h3 className="font-semibold flex items-center gap-2 mb-2"><AlertTriangle size={18} /> Common Side Effects</h3>
-                      <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
+                    <div className="p-4 bg-rose-50 rounded-xl border border-rose-100">
+                      <h3 className="font-semibold flex items-center gap-2 mb-2 text-rose-900">
+                        <AlertTriangle size={18} /> Common Side Effects
+                      </h3>
+                      <ul className="list-disc list-inside text-sm text-rose-700 space-y-1">
                         {insights.commonSideEffects.map((effect, i) => <li key={i}>{effect}</li>)}
                       </ul>
                     </div>
-                    <div>
-                      <h3 className="font-semibold flex items-center gap-2 mb-2"><Bell size={18} /> Follow-up Suggestions</h3>
-                      <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
+                    <div className="p-4 bg-purple-50 rounded-xl border border-purple-100">
+                      <h3 className="font-semibold flex items-center gap-2 mb-2 text-purple-900">
+                        <Bell size={18} /> Follow-up Suggestions
+                      </h3>
+                      <ul className="list-disc list-inside text-sm text-purple-700 space-y-1">
                         {insights.followUpSuggestions.map((suggestion, i) => <li key={i}>{suggestion}</li>)}
                       </ul>
                     </div>

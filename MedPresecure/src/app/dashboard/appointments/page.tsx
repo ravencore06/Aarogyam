@@ -67,31 +67,21 @@ import {
   Building,
   LogOut,
 } from 'lucide-react';
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  SidebarProvider,
-  SidebarInset,
-  SidebarFooter,
-  SidebarSeparator,
-  SidebarTrigger,
-} from '@/components/ui/sidebar';
+import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { useRouter } from 'next/navigation';
 import { subDays, startOfDay, endOfDay } from 'date-fns';
 import { doctors } from '@/lib/doctors';
+import { Sidebar } from '@/components/dashboard/sidebar';
+import { Header } from '@/components/dashboard/header';
 
 
 type Status = 'Confirmed' | 'Pending' | 'Cancelled' | 'Completed';
 
 const statusColors: Record<Status, string> = {
-  Confirmed: 'bg-green-100 text-green-800',
-  Pending: 'bg-yellow-100 text-yellow-800',
-  Cancelled: 'bg-red-100 text-red-800',
-  Completed: 'bg-blue-100 text-blue-800',
+  Confirmed: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+  Pending: 'bg-amber-50 text-amber-700 border border-amber-200',
+  Cancelled: 'bg-rose-50 text-rose-700 border border-rose-200',
+  Completed: 'bg-blue-50 text-blue-700 border border-blue-200',
 };
 
 export default function AppointmentsPage() {
@@ -165,178 +155,179 @@ export default function AppointmentsPage() {
 
   return (
     <SidebarProvider>
-      <Sidebar>
-        <SidebarHeader>
-          <div className="flex items-center gap-2">
-            <Shield className="w-6 h-6 text-primary" />
-            <span className="text-lg font-semibold">Aarogyam</span>
-          </div>
-        </SidebarHeader>
-        <SidebarContent>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton onClick={() => handleNavigation('/dashboard')}>Dashboard</SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton onClick={() => handleNavigation('/dashboard/prescriptions')}>Prescriptions</SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton onClick={() => handleNavigation('/dashboard/appointments')} isActive>Appointments</SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton onClick={() => handleNavigation('/dashboard/doctors')}>Doctors</SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton onClick={() => handleNavigation('/dashboard/settings')}>Settings</SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarContent>
-        <SidebarFooter>
-          <SidebarSeparator />
-          <div className="flex items-center gap-3 p-2">
-            <Avatar>
-              <AvatarImage src="https://i.pravatar.cc/300" alt="User avatar" />
-              <AvatarFallback>SN</AvatarFallback>
-            </Avatar>
-            <div className="flex-1">
-              <p className="text-sm font-semibold">Sarah Noor</p>
-              <p className="text-xs text-muted-foreground">Patient ID: {user.uid.slice(0, 7)}</p>
-            </div>
-            <Button variant="ghost" size="icon" onClick={() => auth?.signOut()}><LogOut className="w-5 h-5" /></Button>
-          </div>
-        </SidebarFooter>
-      </Sidebar>
+      <Sidebar />
       <SidebarInset>
         <div className="flex flex-col min-h-screen bg-slate-50">
-          <header className="sticky top-0 z-10 flex items-center justify-between h-16 px-6 bg-white border-b">
-            <div className="flex items-center gap-4">
-              <SidebarTrigger />
-              <h1 className="text-xl font-bold">Appointments</h1>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <Input
-                  placeholder="Search by doctor..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-64 pl-10"
-                />
+          <Header title="Appointments Management" user={user} />
+
+          <main className="flex-1 p-6 space-y-6">
+            {/* Header */}
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <h2 className="text-3xl font-bold text-slate-900">Appointments Management</h2>
+                <p className="text-sm text-slate-600 mt-1">Schedule, manage, and track your healthcare appointments</p>
               </div>
-              <Button onClick={() => router.push('/dashboard/book-appointment')}>
-                <Plus className="mr-2 h-4 w-4" /> Book Appointment
-              </Button>
-            </div>
-          </header>
-
-          <main className="flex-1 p-6">
-            <div className="grid grid-cols-1 gap-6 mb-6 md:grid-cols-3">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">Upcoming Appointments</CardTitle>
-                  <CalendarClock className="w-5 h-5 text-blue-500" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{upcomingCount}</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">Completed Today</CardTitle>
-                  <CalendarCheck className="w-5 h-5 text-green-500" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{completedTodayCount}</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">Cancellations</CardTitle>
-                  <CalendarX className="w-5 h-5 text-red-500" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{cancelledCount}</div>
-                </CardContent>
-              </Card>
+              <div className="flex items-center gap-3">
+                <div className="relative w-full md:w-80">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <Input
+                    placeholder="Search appointments..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-11 h-11 bg-slate-50 border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-primary/20 transition-smooth shadow-sm"
+                  />
+                </div>
+                <Button onClick={() => router.push('/dashboard/book-appointment')} className="bg-gradient-primary hover:shadow-lg transition-smooth whitespace-nowrap">
+                  <Plus className="mr-2 h-4 w-4" /> New Appointment
+                </Button>
+              </div>
             </div>
 
-            <Card>
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-4 animate-fade-in">
+              <Card className="overflow-hidden border-none shadow-premium hover:shadow-premium-lg transition-smooth">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500 opacity-10 rounded-bl-full"></div>
+                <CardHeader className="flex flex-row items-center justify-between pb-2 relative">
+                  <CardTitle className="text-sm font-medium text-slate-600">Total Appointments</CardTitle>
+                  <div className="p-3 bg-blue-50 rounded-xl">
+                    <CalendarClock className="w-6 h-6 text-blue-600" />
+                  </div>
+                </CardHeader>
+                <CardContent className="relative">
+                  <div className="text-4xl font-bold text-slate-900">{appointments?.length || 0}</div>
+                  <p className="text-sm text-blue-600 mt-2 font-medium">+12% from last month</p>
+                </CardContent>
+              </Card>
+              <Card className="overflow-hidden border-none shadow-premium hover:shadow-premium-lg transition-smooth">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-primary opacity-10 rounded-bl-full"></div>
+                <CardHeader className="flex flex-row items-center justify-between pb-2 relative">
+                  <CardTitle className="text-sm font-medium text-slate-600">Upcoming</CardTitle>
+                  <div className="p-3 bg-primary/10 rounded-xl">
+                    <CalendarClock className="w-6 h-6 text-primary" />
+                  </div>
+                </CardHeader>
+                <CardContent className="relative">
+                  <div className="text-4xl font-bold text-slate-900">{upcomingCount}</div>
+                  <p className="text-sm text-slate-500 mt-2">Today: {completedTodayCount}</p>
+                </CardContent>
+              </Card>
+              <Card className="overflow-hidden border-none shadow-premium hover:shadow-premium-lg transition-smooth">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500 opacity-10 rounded-bl-full"></div>
+                <CardHeader className="flex flex-row items-center justify-between pb-2 relative">
+                  <CardTitle className="text-sm font-medium text-slate-600">Completed</CardTitle>
+                  <div className="p-3 bg-emerald-50 rounded-xl">
+                    <CalendarCheck className="w-6 h-6 text-emerald-600" />
+                  </div>
+                </CardHeader>
+                <CardContent className="relative">
+                  <div className="text-4xl font-bold text-slate-900">{completedTodayCount}</div>
+                  <p className="text-sm text-emerald-600 mt-2 font-medium">This month</p>
+                </CardContent>
+              </Card>
+              <Card className="overflow-hidden border-none shadow-premium hover:shadow-premium-lg transition-smooth">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-rose-500 opacity-10 rounded-bl-full"></div>
+                <CardHeader className="flex flex-row items-center justify-between pb-2 relative">
+                  <CardTitle className="text-sm font-medium text-slate-600">Cancelled</CardTitle>
+                  <div className="p-3 bg-rose-50 rounded-xl">
+                    <CalendarX className="w-6 h-6 text-rose-600" />
+                  </div>
+                </CardHeader>
+                <CardContent className="relative">
+                  <div className="text-4xl font-bold text-slate-900">{cancelledCount}</div>
+                  <p className="text-sm text-slate-500 mt-2">All time</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Appointments Table */}
+            <Card className="border-none shadow-premium">
               <CardHeader>
-                <CardTitle>Appointment History</CardTitle>
-                {/* Filter Sidebar Trigger could go here on mobile */}
+                <CardTitle className="text-xl font-bold text-slate-900">Appointment History</CardTitle>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Patient</TableHead>
-                      <TableHead>Doctor</TableHead>
-                      <TableHead>Date &amp; Time</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {isLoading ? (
-                      <TableRow><TableCell colSpan={6} className="h-24 text-center">Loading...</TableCell></TableRow>
-                    ) : filteredAppointments.length > 0 ? (
-                      filteredAppointments.map((appt) => {
-                        const doctor = getDoctorInfo(appt.doctorId);
-                        return (
-                          <TableRow key={appt.id}>
-                            <TableCell>
-                              <div className="flex items-center gap-3">
-                                <Avatar>
-                                  <AvatarImage src="https://i.pravatar.cc/300" />
-                                  <AvatarFallback>SN</AvatarFallback>
-                                </Avatar>
-                                <div>
-                                  <p className="font-semibold">Sarah Noor</p>
-                                  <p className="text-sm text-gray-500">{user.email}</p>
+                <div className="overflow-hidden rounded-xl border border-slate-100">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-slate-50 hover:bg-slate-50">
+                        <TableHead className="font-semibold text-slate-700">Patient</TableHead>
+                        <TableHead className="font-semibold text-slate-700">Doctor</TableHead>
+                        <TableHead className="font-semibold text-slate-700">Date & Time</TableHead>
+                        <TableHead className="font-semibold text-slate-700">Type</TableHead>
+                        <TableHead className="font-semibold text-slate-700">Status</TableHead>
+                        <TableHead className="text-right font-semibold text-slate-700">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {isLoading ? (
+                        <TableRow><TableCell colSpan={6} className="h-24 text-center text-slate-500">Loading...</TableCell></TableRow>
+                      ) : filteredAppointments.length > 0 ? (
+                        filteredAppointments.map((appt) => {
+                          const doctor = getDoctorInfo(appt.doctorId);
+                          return (
+                            <TableRow key={appt.id} className="hover:bg-slate-50 transition-smooth">
+                              <TableCell>
+                                <div className="flex items-center gap-3">
+                                  <Avatar className="border-2 border-white shadow-sm">
+                                    <AvatarImage src="https://i.pravatar.cc/300" />
+                                    <AvatarFallback className="bg-gradient-primary text-white">SN</AvatarFallback>
+                                  </Avatar>
+                                  <div>
+                                    <p className="font-semibold text-slate-900">Sarah Noor</p>
+                                    <p className="text-sm text-slate-500">{user.email}</p>
+                                  </div>
                                 </div>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-3">
-                                <Avatar>
-                                  <AvatarImage src={doctor?.avatar} />
-                                  <AvatarFallback>{doctor?.name.charAt(0)}</AvatarFallback>
-                                </Avatar>
-                                <div>
-                                  <p className="font-semibold">{doctor?.name}</p>
-                                  <p className="text-sm text-gray-500">{doctor?.specialty}</p>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-3">
+                                  <Avatar className="border-2 border-white shadow-sm">
+                                    <AvatarImage src={doctor?.avatar} />
+                                    <AvatarFallback className="bg-primary/10 text-primary">{doctor?.name.charAt(0)}</AvatarFallback>
+                                  </Avatar>
+                                  <div>
+                                    <p className="font-semibold text-slate-900">{doctor?.name}</p>
+                                    <p className="text-sm text-primary">{doctor?.specialty}</p>
+                                  </div>
                                 </div>
-                              </div>
-                            </TableCell>
-                            <TableCell>{appt.appointmentDateTime.toDate().toLocaleString()}</TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                {appt.type === 'Video' ? <Video className="h-4 w-4 text-blue-500" /> : <Building className="h-4 w-4 text-purple-500" />}
-                                {appt.type}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <Badge className={statusColors[appt.status as Status] || 'bg-gray-100 text-gray-800'}>{appt.status}</Badge>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical className="w-5 h-5" /></Button></DropdownMenuTrigger>
-                                <DropdownMenuContent>
-                                  <DropdownMenuItem>Edit</DropdownMenuItem>
-                                  <DropdownMenuItem>Reschedule</DropdownMenuItem>
-                                  <DropdownMenuItem className="text-red-500">Cancel</DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </TableCell>
-                          </TableRow>
-                        )
-                      })
-                    ) : (
-                      <TableRow><TableCell colSpan={6} className="h-24 text-center">No appointments found.</TableCell></TableRow>
-                    )}
-                  </TableBody>
-                </Table>
+                              </TableCell>
+                              <TableCell className="text-slate-600">{appt.appointmentDateTime.toDate().toLocaleString()}</TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2 text-slate-600">
+                                  {appt.type === 'Video' ? <Video className="h-4 w-4 text-blue-500" /> : <Building className="h-4 w-4 text-purple-500" />}
+                                  <span className="font-medium">{appt.type}</span>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Badge className={statusColors[appt.status as Status] || 'bg-slate-100 text-slate-700 border-slate-200'}>{appt.status}</Badge>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="hover:bg-slate-100 rounded-lg">
+                                      <MoreVertical className="w-4 h-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="rounded-xl shadow-lg">
+                                    <DropdownMenuItem className="rounded-lg">Edit</DropdownMenuItem>
+                                    <DropdownMenuItem className="rounded-lg">Reschedule</DropdownMenuItem>
+                                    <DropdownMenuItem className="text-rose-600 rounded-lg">Cancel</DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })
+                      ) : (
+                        <TableRow><TableCell colSpan={6} className="h-32 text-center">
+                          <div className="flex flex-col items-center gap-2">
+                            <CalendarX className="w-12 h-12 text-slate-300" />
+                            <p className="font-semibold text-slate-900">No appointments found</p>
+                            <p className="text-sm text-slate-500">Book your first appointment to get started</p>
+                          </div>
+                        </TableCell></TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           </main>

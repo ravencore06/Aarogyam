@@ -7,19 +7,7 @@ import {
   query
 } from 'firebase/firestore';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  SidebarProvider,
-  SidebarInset,
-  SidebarFooter,
-  SidebarSeparator,
-  SidebarTrigger,
-} from '@/components/ui/sidebar';
+import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -49,6 +37,8 @@ import {
 } from 'lucide-react';
 
 import type { Doctor } from '@/lib/doctors';
+import { Sidebar } from '@/components/dashboard/sidebar';
+import { Header } from '@/components/dashboard/header';
 
 export default function DoctorsPage() {
   const { user, isUserLoading, auth } = useUser();
@@ -201,30 +191,30 @@ export default function DoctorsPage() {
   );
 
   const renderDoctorCard = (doctor: Doctor) => (
-    <Card key={doctor.id} className="overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1">
-      <CardContent className="p-4">
+    <Card key={doctor.id} className="overflow-hidden border-none shadow-premium hover:shadow-premium-lg transition-smooth hover:-translate-y-1">
+      <CardContent className="p-6">
         <div className="flex items-start gap-4">
-          <Avatar className="w-20 h-20 border">
+          <Avatar className="w-20 h-20 border-2 border-white shadow-md">
             <AvatarImage src={doctor.avatar} alt={doctor.name} />
-            <AvatarFallback>{doctor.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+            <AvatarFallback className="bg-gradient-primary text-white text-lg">{doctor.name.split(' ').map((n: string) => n[0]).join('')}</AvatarFallback>
           </Avatar>
           <div className="flex-1">
-            <h3 className="font-bold text-lg">{doctor.name}</h3>
-            <p className="text-primary font-medium">{doctor.specialty}</p>
-            <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
+            <h3 className="font-bold text-lg text-slate-900">{doctor.name}</h3>
+            <p className="text-primary font-semibold">{doctor.specialty}</p>
+            <div className="flex items-center gap-1 text-sm text-slate-600 mt-2">
               <MapPin className="w-4 h-4" /> {doctor.location}
             </div>
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+            <div className="flex items-center gap-1 text-sm text-slate-600">
               <Briefcase className="w-4 h-4" /> {doctor.experience} years
             </div>
           </div>
         </div>
-        <div className="flex items-center justify-between mt-4">
+        <div className="flex items-center justify-between mt-5 pt-5 border-t border-slate-100">
           <div className="flex items-center gap-1 text-amber-500">
             <Star className="w-5 h-5 fill-current" />
-            <span className="font-bold text-base">{doctor.rating.toFixed(1)}</span>
+            <span className="font-bold text-lg text-slate-900">{doctor.rating.toFixed(1)}</span>
           </div>
-          <Button size="sm">View Profile</Button>
+          <Button size="sm" className="bg-gradient-primary hover:shadow-lg transition-smooth">View Profile</Button>
         </div>
       </CardContent>
     </Card>
@@ -252,93 +242,23 @@ export default function DoctorsPage() {
 
   return (
     <SidebarProvider>
-      <Sidebar>
-        <SidebarHeader>
-          <div className="flex items-center gap-2">
-            <Shield className="w-6 h-6 text-primary" />
-            <span className="text-lg font-semibold">Aarogyam</span>
-          </div>
-        </SidebarHeader>
-        <SidebarContent>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton onClick={() => handleNavigation('/dashboard')}>Dashboard</SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton onClick={() => handleNavigation('/dashboard/prescriptions')}>Prescriptions</SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton onClick={() => handleNavigation('/dashboard/appointments')}>Appointments</SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton onClick={() => handleNavigation('/dashboard/doctors')} isActive>Doctors</SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton onClick={() => handleNavigation('/dashboard/settings')}>Settings</SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarContent>
-        <SidebarFooter>
-          <SidebarSeparator />
-          <div className="flex items-center gap-3 p-2">
-            <Avatar>
-              <AvatarImage src="https://i.pravatar.cc/300" alt="User avatar" />
-              <AvatarFallback>SN</AvatarFallback>
-            </Avatar>
-            <div className="flex-1">
-              <p className="text-sm font-semibold">Sarah Noor</p>
-              <p className="text-xs text-muted-foreground">Patient ID: {user.uid.slice(0, 7)}</p>
-            </div>
-            <Button variant="ghost" size="icon" onClick={() => auth?.signOut()}><LogOut className="w-5 h-5" /></Button>
-          </div>
-        </SidebarFooter>
-      </Sidebar>
+      <Sidebar />
       <SidebarInset>
         <div className="flex flex-col min-h-screen bg-slate-50">
-          <header className="sticky top-0 z-10 flex items-center justify-between h-16 px-6 bg-white border-b">
-            <div className="flex items-center gap-4">
-              <SidebarTrigger />
-              <h1 className="text-xl font-bold">Doctor Directory</h1>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="relative w-96">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <Input
-                  placeholder="Search by name or specialty..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10"
-                />
-              </div>
-              <div className="md:hidden">
-                <Sheet>
-                  <SheetTrigger asChild>
-                    <Button variant="outline" size="icon">
-                      <SlidersHorizontal className="h-5 w-5" />
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent>
-                    <SheetHeader>
-                      <SheetTitle>Filters</SheetTitle>
-                    </SheetHeader>
-                    <div className="py-8">
-                      {renderFilters()}
-                    </div>
-                  </SheetContent>
-                </Sheet>
-              </div>
-            </div>
-          </header>
+          <Header title="Doctor Directory" user={user} />
 
           <main className="flex-1 p-6">
             <div className="flex gap-8">
-              <aside className="hidden md:block w-72">
-                <h2 className="text-lg font-semibold mb-4">Filters</h2>
-                {renderFilters()}
+              <aside className="hidden md:block w-80 flex-shrink-0">
+                <div className="sticky top-24">
+                  <h2 className="text-xl font-bold mb-6 text-slate-900">Filters</h2>
+                  {renderFilters()}
+                </div>
               </aside>
               <div className="flex-1">
-                <div className="mb-4">
-                  <h3 className="text-lg font-medium">{filteredDoctors.length} doctors found</h3>
+                <div className="mb-6">
+                  <h3 className="text-2xl font-bold text-slate-900">{filteredDoctors.length} doctors available</h3>
+                  <p className="text-sm text-slate-600 mt-1">Find the right healthcare provider for your needs</p>
                 </div>
                 {areDoctorsLoading ? (
                   <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -349,9 +269,16 @@ export default function DoctorsPage() {
                     {filteredDoctors.map(renderDoctorCard)}
                   </div>
                 ) : (
-                  <div className="text-center py-16">
-                    <p className="text-lg font-semibold">No doctors match your criteria.</p>
-                    <p className="text-muted-foreground mt-2">Try adjusting your filters.</p>
+                  <div className="text-center py-20">
+                    <div className="flex flex-col items-center gap-3">
+                      <Search className="w-16 h-16 text-slate-300" />
+                      <p className="text-xl font-bold text-slate-900">No doctors match your criteria</p>
+                      <p className="text-slate-600">Try adjusting your filters or search term</p>
+                      <Button variant="outline" onClick={resetFilters} className="mt-4">
+                        <X className="w-4 h-4 mr-2" />
+                        Reset Filters
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>

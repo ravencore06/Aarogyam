@@ -9,11 +9,14 @@ import {
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
+  updateProfile,
 } from 'firebase/auth';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
-import { useAuth } from '@/firebase';
+import { useAuth, useFirestore, useStorage } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import {
@@ -25,22 +28,25 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Eye, EyeOff, Loader2, Lock, Shield, ArrowRight } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Lock, Phone, ArrowRight, User, Calendar, Upload, X } from 'lucide-react';
 import { Branding } from './branding';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
-const toDummyEmail = (aadhaar: string) => `${aadhaar}@medpreserve.com`;
+const toDummyEmail = (mobile: string) => `${mobile}@aarogyam.app`;
 
-const aadhaarRegex = new RegExp(/^\d{12}$/);
-const aadhaarError = 'Aadhaar number must be 12 digits.';
+const mobileRegex = new RegExp(/^\d{10}$/);
+const mobileError = 'Mobile number must be 10 digits.';
 
 const LoginSchema = z.object({
-  aadhaar: z.string().regex(aadhaarRegex, { message: aadhaarError }),
+  mobile: z.string().regex(mobileRegex, { message: mobileError }),
   password: z.string().min(6, 'Password must be at least 6 characters.'),
 });
 
 const SignupSchema = z
   .object({
-    aadhaar: z.string().regex(aadhaarRegex, { message: aadhaarError }),
+    name: z.string().min(2, 'Name must be at least 2 characters.'),
+    age: z.coerce.number().min(1, 'Age must be at least 1').max(120, 'Age must be less than 120'),
+    mobile: z.string().regex(mobileRegex, { message: mobileError }),
     password: z.string().min(6, 'Password must be at least 6 characters.'),
     confirmPassword: z.string(),
   })
@@ -50,7 +56,7 @@ const SignupSchema = z
   });
 
 const ForgotPasswordSchema = z.object({
-  aadhaar: z.string().regex(aadhaarRegex, { message: aadhaarError }),
+  mobile: z.string().regex(mobileRegex, { message: mobileError }),
 });
 
 type FormType = 'login' | 'signup' | 'forgotPassword';
@@ -65,30 +71,73 @@ function AuthFormCore({
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const { toast } = useToast();
   const auth = useAuth();
+  const firestore = useFirestore();
+  const storage = useStorage();
   const router = useRouter();
 
   const currentSchema =
     formType === 'login'
       ? LoginSchema
       : formType === 'signup'
-      ? SignupSchema
-      : ForgotPasswordSchema;
+        ? SignupSchema
+        : ForgotPasswordSchema;
 
   const form = useForm<z.infer<typeof currentSchema>>({
     resolver: zodResolver(currentSchema),
     defaultValues:
       formType === 'login'
-        ? { aadhaar: '', password: '' }
+        ? { mobile: '', password: '' }
         : formType === 'signup'
-        ? { aadhaar: '', password: '', confirmPassword: '' }
-        : { aadhaar: '' },
+          ? { name: '', age: '', mobile: '', password: '', confirmPassword: '' }
+          : { mobile: '' },
   });
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          variant: 'destructive',
+          title: 'File too large',
+          description: 'Profile photo must be less than 5MB',
+        });
+        return;
+      }
+      setProfilePhoto(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removePhoto = () => {
+    setProfilePhoto(null);
+    setPhotoPreview(null);
+  };
+
+  const uploadProfilePhoto = async (userId: string): Promise<string | null> => {
+    if (!profilePhoto || !storage) return null;
+
+    try {
+      const photoRef = ref(storage, `users/${userId}/profile.jpg`);
+      await uploadBytes(photoRef, profilePhoto);
+      const downloadURL = await getDownloadURL(photoRef);
+      return downloadURL;
+    } catch (error) {
+      console.error('Error uploading profile photo:', error);
+      return null;
+    }
+  };
 
   const onSubmit = async (data: z.infer<typeof currentSchema>) => {
     setLoading(true);
-    const email = toDummyEmail(data.aadhaar);
+    const email = toDummyEmail(data.mobile);
 
     try {
       if (formType === 'login' && 'password' in data) {
@@ -98,8 +147,33 @@ function AuthFormCore({
           description: 'Welcome back!',
         });
         router.push('/dashboard');
-      } else if (formType === 'signup' && 'password' in data) {
-        await createUserWithEmailAndPassword(auth, email, data.password);
+      } else if (formType === 'signup' && 'password' in data && 'name' in data && 'age' in data) {
+        // Create user with email and password
+        const userCredential = await createUserWithEmailAndPassword(auth, email, data.password);
+        const user = userCredential.user;
+
+        // Upload profile photo if provided
+        const photoURL = await uploadProfilePhoto(user.uid);
+
+        // Update user profile with display name and photo
+        await updateProfile(user, {
+          displayName: data.name,
+          photoURL: photoURL || undefined,
+        });
+
+        // Save user profile to Firestore
+        if (firestore) {
+          await setDoc(doc(firestore, 'users', user.uid), {
+            name: data.name,
+            age: data.age,
+            mobileNumber: data.mobile,
+            photoURL: photoURL || null,
+            email: email,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          });
+        }
+
         toast({
           title: 'Account Created',
           description: 'You have successfully signed up. Please log in.',
@@ -132,18 +206,18 @@ function AuthFormCore({
       return (
         <FormField
           control={form.control}
-          name="aadhaar"
+          name="mobile"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Aadhaar Number</FormLabel>
+              <FormLabel>Mobile Number</FormLabel>
               <FormControl>
                 <div className="relative">
-                  <Shield className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                   <Input
-                    placeholder="1234 5678 9012"
+                    placeholder="10-digit mobile number"
                     {...field}
                     className="pl-10 bg-white/50"
-                    maxLength={12}
+                    maxLength={10}
                     suppressHydrationWarning
                   />
                 </div>
@@ -157,20 +231,108 @@ function AuthFormCore({
 
     return (
       <>
+        {formType === 'signup' && (
+          <>
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Full Name</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500" />
+                      <Input
+                        placeholder="Enter your full name"
+                        {...field}
+                        className="pl-10"
+                        suppressHydrationWarning
+                      />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="age"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Age</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500" />
+                      <Input
+                        type="number"
+                        placeholder="Enter your age"
+                        {...field}
+                        className="pl-10"
+                        min={1}
+                        max={120}
+                        suppressHydrationWarning
+                      />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Profile Photo Upload */}
+            <div className="space-y-2">
+              <FormLabel>Profile Photo (Optional)</FormLabel>
+              <div className="flex items-center gap-4">
+                {photoPreview ? (
+                  <div className="relative">
+                    <Avatar className="w-20 h-20 border-2 border-primary">
+                      <AvatarImage src={photoPreview} alt="Profile preview" />
+                      <AvatarFallback>Preview</AvatarFallback>
+                    </Avatar>
+                    <button
+                      type="button"
+                      onClick={removePhoto}
+                      className="absolute -top-2 -right-2 bg-rose-500 text-white rounded-full p-1 hover:bg-rose-600 transition"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <Avatar className="w-20 h-20 border-2 border-dashed border-gray-300">
+                    <AvatarFallback className="bg-gray-50">
+                      <Upload className="w-8 h-8 text-gray-400" />
+                    </AvatarFallback>
+                  </Avatar>
+                )}
+                <div className="flex-1">
+                  <Input
+                    type="file"
+                    accept="image/jpeg,image/png,image/jpg"
+                    onChange={handlePhotoChange}
+                    className="cursor-pointer"
+                    suppressHydrationWarning
+                  />
+                  <p className="text-xs text-gray-500 mt-1">JPG, PNG. Max 5MB</p>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
         <FormField
           control={form.control}
-          name="aadhaar"
+          name="mobile"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Aadhaar Number</FormLabel>
+              <FormLabel>Mobile Number</FormLabel>
               <FormControl>
                 <div className="relative">
-                  <Shield className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500" />
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500" />
                   <Input
-                    placeholder="12-Digit Aadhaar Number"
+                    placeholder="10-digit mobile number"
                     {...field}
                     className="pl-10"
-                    maxLength={12}
+                    maxLength={10}
                     suppressHydrationWarning
                   />
                 </div>
@@ -185,7 +347,7 @@ function AuthFormCore({
           render={({ field }) => (
             <FormItem>
               <div className="flex justify-between items-center">
-                <FormLabel>Password</FormLabel>
+                <FormLabel>{formType === 'signup' ? 'New Password' : 'Password'}</FormLabel>
                 {formType === 'login' && (
                   <Button
                     type="button"
