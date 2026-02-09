@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -13,8 +12,23 @@ import {
 } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import {
+  Shield,
+  Lock,
+  Eye,
+  EyeOff,
+  ArrowRight,
+  HelpCircle,
+  Loader2,
+  User,
+  Calendar,
+  Upload,
+  X,
+  UserCircle,
+  Building2,
+  Info
+} from 'lucide-react';
 
 import { useAuth, useFirestore, useStorage } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
@@ -28,19 +42,19 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Eye, EyeOff, Loader2, Lock, Phone, ArrowRight, User, Calendar, Upload, X, UserCircle, Building2 } from 'lucide-react';
-import { Branding } from './branding';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-const toDummyEmail = (mobile: string) => `${mobile}@aarogyam.app`;
+// Helper to convert Aadhaar/Mobile to dummy email for Firebase Auth
+const toDummyEmail = (id: string) => `${id}@medpreserve.app`;
 
-const mobileRegex = new RegExp(/^\d{10}$/);
-const mobileError = 'Mobile number must be 10 digits.';
+const aadhaarRegex = new RegExp(/^\d{12}$/);
+const aadhaarError = 'Aadhaar Number must be 12 digits.';
 
 const LoginSchema = z.object({
-  mobile: z.string().regex(mobileRegex, { message: mobileError }),
+  aadhaar: z.string().regex(aadhaarRegex, { message: aadhaarError }),
   password: z.string().min(6, 'Password must be at least 6 characters.'),
 });
 
@@ -51,7 +65,7 @@ const SignupSchema = z
     }),
     name: z.string().min(2, 'Name must be at least 2 characters.'),
     age: z.coerce.number().min(1, 'Age must be at least 1').max(120, 'Age must be less than 120'),
-    mobile: z.string().regex(mobileRegex, { message: mobileError }),
+    aadhaar: z.string().regex(aadhaarRegex, { message: aadhaarError }),
     password: z.string().min(6, 'Password must be at least 6 characters.'),
     confirmPassword: z.string(),
   })
@@ -61,23 +75,18 @@ const SignupSchema = z
   });
 
 const ForgotPasswordSchema = z.object({
-  mobile: z.string().regex(mobileRegex, { message: mobileError }),
+  aadhaar: z.string().regex(aadhaarRegex, { message: aadhaarError }),
 });
 
 type FormType = 'login' | 'signup' | 'forgotPassword';
 
-function AuthFormCore({
-  formType,
-  setFormType,
-}: {
-  formType: FormType;
-  setFormType: (type: FormType) => void;
-}) {
+export function AuthForm() {
+  const [formType, setFormType] = useState<FormType>('login');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+
   const { toast } = useToast();
   const auth = useAuth();
   const firestore = useFirestore();
@@ -85,510 +94,309 @@ function AuthFormCore({
   const router = useRouter();
 
   const currentSchema =
-    formType === 'login'
-      ? LoginSchema
-      : formType === 'signup'
-        ? SignupSchema
-        : ForgotPasswordSchema;
+    formType === 'login' ? LoginSchema :
+      formType === 'signup' ? SignupSchema :
+        ForgotPasswordSchema;
 
   const form = useForm<z.infer<typeof currentSchema>>({
     resolver: zodResolver(currentSchema),
     defaultValues:
-      formType === 'login'
-        ? { mobile: '', password: '' }
-        : formType === 'signup'
-          ? { userType: 'patient' as const, name: '', age: 0, mobile: '', password: '', confirmPassword: '' }
-          : { mobile: '' },
+      formType === 'login' ? { aadhaar: '', password: '' } :
+        formType === 'signup' ? { userType: 'patient', name: '', age: 0, aadhaar: '', password: '', confirmPassword: '' } :
+          { aadhaar: '' },
   });
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        toast({
-          variant: 'destructive',
-          title: 'File too large',
-          description: 'Profile photo must be less than 5MB',
-        });
+        toast({ variant: 'destructive', title: 'File too large', description: 'Photo must be < 5MB' });
         return;
       }
       setProfilePhoto(file);
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setPhotoPreview(reader.result as string);
-      };
+      reader.onloadend = () => setPhotoPreview(reader.result as string);
       reader.readAsDataURL(file);
     }
   };
 
-  const removePhoto = () => {
-    setProfilePhoto(null);
-    setPhotoPreview(null);
-  };
-
-  const uploadProfilePhoto = async (userId: string): Promise<string | null> => {
-    if (!profilePhoto || !storage) return null;
-
-    try {
-      const photoRef = ref(storage, `users/${userId}/profile.jpg`);
-      await uploadBytes(photoRef, profilePhoto);
-      const downloadURL = await getDownloadURL(photoRef);
-      return downloadURL;
-    } catch (error) {
-      console.error('Error uploading profile photo:', error);
-      return null;
-    }
-  };
-
-  const onSubmit = async (data: z.infer<typeof currentSchema>) => {
+  const onSubmit = async (data: any) => {
     setLoading(true);
-    const email = toDummyEmail(data.mobile);
+    const email = toDummyEmail(data.aadhaar);
 
     try {
-      if (formType === 'login' && 'password' in data) {
+      if (formType === 'login') {
         await signInWithEmailAndPassword(auth, email, data.password);
-
-        // Fetch user profile to determine role
         if (firestore) {
-          const userDocRef = doc(firestore, 'users', auth.currentUser!.uid);
-          const userDocSnap = await import('firebase/firestore').then(({ getDoc }) => getDoc(userDocRef));
-
-          if (userDocSnap.exists()) {
-            const userData = userDocSnap.data();
-            const redirectPath = userData.userType === 'hospital' ? '/hospital-dashboard' : '/dashboard';
-
-            toast({
-              title: 'Login Successful',
-              description: 'Welcome back!',
-            });
-            router.push(redirectPath);
-          } else {
-            // Fallback if no profile found
-            router.push('/dashboard');
-          }
-        } else {
-          router.push('/dashboard');
+          const userSnap = await import('firebase/firestore').then(({ getDoc, doc }) => getDoc(doc(firestore, 'users', auth.currentUser!.uid)));
+          const userData = userSnap.data();
+          const path = userData?.userType === 'hospital' ? '/hospital-dashboard' : '/dashboard';
+          toast({ title: 'Welcome back!', description: 'Login successful' });
+          router.push(path);
         }
-      } else if (formType === 'signup' && 'password' in data && 'name' in data && 'age' in data) {
-        // Create user with email and password
-        const userCredential = await createUserWithEmailAndPassword(auth, email, data.password);
-        const user = userCredential.user;
+      } else if (formType === 'signup') {
+        const userCred = await createUserWithEmailAndPassword(auth, email, data.password);
+        let photoURL = null;
+        if (profilePhoto && storage) {
+          const photoRef = ref(storage, `users/${userCred.user.uid}/profile.jpg`);
+          await uploadBytes(photoRef, profilePhoto);
+          photoURL = await getDownloadURL(photoRef);
+        }
 
-        // Upload profile photo if provided
-        const photoURL = await uploadProfilePhoto(user.uid);
-
-        // Update user profile with display name and photo
-        await updateProfile(user, {
+        await updateProfile(userCred.user, {
           displayName: data.name,
-          photoURL: photoURL || undefined,
+          photoURL: photoURL || undefined
         });
 
-        // Save user profile to Firestore
-        if (firestore && 'userType' in data) {
-          await setDoc(doc(firestore, 'users', user.uid), {
+        if (firestore) {
+          await setDoc(doc(firestore, 'users', userCred.user.uid), {
             userType: data.userType,
             name: data.name,
             age: data.age,
-            mobileNumber: data.mobile,
-            photoURL: photoURL || null,
+            aadhaarNumber: data.aadhaar,
+            photoURL: photoURL,
             email: email,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
           });
         }
-
-        toast({
-          title: 'Account Created',
-          description: 'You have successfully signed up. Please log in.',
-        });
-        setFormType('login');
+        toast({ title: 'Account created', description: 'Welcome to MedPreserve' });
+        router.push(data.userType === 'hospital' ? '/hospital-dashboard' : '/dashboard');
       } else if (formType === 'forgotPassword') {
         await sendPasswordResetEmail(auth, email);
-        toast({
-          title: 'Password Reset Email Sent',
-          description: 'Check your inbox for password reset instructions.',
-        });
+        toast({ title: 'Reset email sent', description: 'Check your inbox' });
         setFormType('login');
       }
     } catch (error: any) {
-      console.error(error);
-      toast({
-        variant: 'destructive',
-        title: 'Authentication Error',
-        description: error.code
-          ? error.code.replace('auth/', '').replace(/-/g, ' ')
-          : 'An unexpected error occurred.',
-      });
+      toast({ variant: 'destructive', title: 'Error', description: error.message });
     } finally {
       setLoading(false);
     }
   };
 
-  const renderFormFields = () => {
-    if (formType === 'forgotPassword') {
-      return (
-        <FormField
-          control={form.control}
-          name="mobile"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Mobile Number</FormLabel>
-              <FormControl>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                  <Input
-                    placeholder="10-digit mobile number"
-                    {...field}
-                    className="pl-10 bg-white/50"
-                    maxLength={10}
-                    suppressHydrationWarning
-                  />
-                </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      );
-    }
+  return (
+    <div className="flex flex-col gap-8 w-full">
+      {/* Auth Card */}
+      <div className="bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-slate-100 overflow-hidden">
+        {/* Tabs */}
+        <Tabs defaultValue={formType === 'signup' ? 'signup' : 'login'} className="w-full">
+          <TabsList className="w-full h-16 p-0 bg-slate-50/50 rounded-none border-b border-slate-100">
+            <TabsTrigger
+              value="login"
+              onClick={() => setFormType('login')}
+              className="flex-1 h-full rounded-none data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:border-b-2 data-[state=active]:border-blue-600 font-bold text-slate-500 transition-all"
+            >
+              Login
+            </TabsTrigger>
+            <TabsTrigger
+              value="signup"
+              onClick={() => setFormType('signup')}
+              className="flex-1 h-full rounded-none data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:border-b-2 data-[state=active]:border-blue-600 font-bold text-slate-500 transition-all"
+            >
+              Sign Up
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
 
-    return (
-      <>
-        {formType === 'signup' && (
-          <>
-            {/* User Type Selection */}
-            <FormField
-              control={form.control}
-              name="userType"
-              render={({ field }) => (
-                <FormItem className="space-y-3">
-                  <FormLabel>I am a</FormLabel>
-                  <FormControl>
-                    <RadioGroup
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      className="grid grid-cols-2 gap-4"
-                    >
-                      <div>
-                        <RadioGroupItem
-                          value="patient"
-                          id="patient"
-                          className="peer sr-only"
-                        />
-                        <Label
-                          htmlFor="patient"
-                          className="flex flex-col items-center justify-center rounded-xl border-2 border-slate-200 bg-white p-4 hover:bg-slate-50 peer-data-[state=checked]:border-blue-600 peer-data-[state=checked]:bg-blue-50 cursor-pointer transition-all"
-                        >
-                          <UserCircle className="mb-2 h-8 w-8 text-blue-600" />
-                          <span className="font-semibold">Patient</span>
-                        </Label>
-                      </div>
-                      <div>
-                        <RadioGroupItem
-                          value="hospital"
-                          id="hospital"
-                          className="peer sr-only"
-                        />
-                        <Label
-                          htmlFor="hospital"
-                          className="flex flex-col items-center justify-center rounded-xl border-2 border-slate-200 bg-white p-4 hover:bg-slate-50 peer-data-[state=checked]:border-teal-600 peer-data-[state=checked]:bg-teal-50 cursor-pointer transition-all"
-                        >
-                          <Building2 className="mb-2 h-8 w-8 text-teal-600" />
-                          <span className="font-semibold">Hospital</span>
-                        </Label>
-                      </div>
-                    </RadioGroup>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+        <div className="p-8 md:p-12 space-y-8">
+          <div className="space-y-2">
+            <h2 className="text-3xl font-black text-slate-900 tracking-tight">
+              {formType === 'login' ? 'Welcome Back' : 'Create Account'}
+            </h2>
+            <p className="text-slate-500 font-medium">
+              {formType === 'login'
+                ? 'Please enter your details to access your dashboard.'
+                : 'Join MedPreserve to start managing your health history.'}
+            </p>
+          </div>
 
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Full Name</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500" />
-                      <Input
-                        placeholder="Enter your full name"
-                        {...field}
-                        className="pl-10"
-                        suppressHydrationWarning
-                      />
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="age"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Age</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500" />
-                      <Input
-                        type="number"
-                        placeholder="Enter your age"
-                        {...field}
-                        className="pl-10"
-                        min={1}
-                        max={120}
-                        suppressHydrationWarning
-                      />
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Profile Photo Upload */}
-            <div className="space-y-2">
-              <FormLabel>Profile Photo (Optional)</FormLabel>
-              <div className="flex items-center gap-4">
-                {photoPreview ? (
-                  <div className="relative">
-                    <Avatar className="w-20 h-20 border-2 border-primary">
-                      <AvatarImage src={photoPreview} alt="Profile preview" />
-                      <AvatarFallback>Preview</AvatarFallback>
-                    </Avatar>
-                    <button
-                      type="button"
-                      onClick={removePhoto}
-                      className="absolute -top-2 -right-2 bg-rose-500 text-white rounded-full p-1 hover:bg-rose-600 transition"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <Avatar className="w-20 h-20 border-2 border-dashed border-gray-300">
-                    <AvatarFallback className="bg-gray-50">
-                      <Upload className="w-8 h-8 text-gray-400" />
-                    </AvatarFallback>
-                  </Avatar>
-                )}
-                <div className="flex-1">
-                  <Input
-                    type="file"
-                    accept="image/jpeg,image/png,image/jpg"
-                    onChange={handlePhotoChange}
-                    className="cursor-pointer"
-                    suppressHydrationWarning
-                  />
-                  <p className="text-xs text-gray-500 mt-1">JPG, PNG. Max 5MB</p>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
-
-        <FormField
-          control={form.control}
-          name="mobile"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Mobile Number</FormLabel>
-              <FormControl>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500" />
-                  <Input
-                    placeholder="10-digit mobile number"
-                    {...field}
-                    className="pl-10"
-                    maxLength={10}
-                    suppressHydrationWarning
-                  />
-                </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="password"
-          render={({ field }) => (
-            <FormItem>
-              <div className="flex justify-between items-center">
-                <FormLabel>{formType === 'signup' ? 'New Password' : 'Password'}</FormLabel>
-                {formType === 'login' && (
-                  <Button
-                    type="button"
-                    variant="link"
-                    className="p-0 h-auto text-sm text-blue-600 hover:text-blue-700"
-                    onClick={() => setFormType('forgotPassword')}
-                    suppressHydrationWarning
-                  >
-                    Forgot password?
-                  </Button>
-                )}
-              </div>
-              <FormControl>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500" />
-                  <Input
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="Enter your password"
-                    {...field}
-                    className="pr-10 pl-10"
-                    suppressHydrationWarning
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 flex items-center pr-3"
-                    aria-label={
-                      showPassword ? 'Hide password' : 'Show password'
-                    }
-                    suppressHydrationWarning
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-5 w-5 text-gray-500" />
-                    ) : (
-                      <Eye className="h-5 w-5 text-gray-500" />
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              {formType === 'signup' && (
+                <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-300">
+                  {/* User Type */}
+                  <FormField
+                    control={form.control}
+                    name="userType"
+                    render={({ field }) => (
+                      <FormItem className="space-y-3">
+                        <FormLabel className="text-sm font-bold text-slate-700">Registration Type</FormLabel>
+                        <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="grid grid-cols-2 gap-4">
+                          <Label htmlFor="type-patient" className="flex items-center gap-3 p-4 rounded-2xl border-2 border-slate-100 bg-slate-50/50 cursor-pointer hover:bg-white transition-all peer-data-[state=checked]:border-blue-600 peer-data-[state=checked]:bg-blue-50">
+                            <RadioGroupItem value="patient" id="type-patient" className="text-blue-600" />
+                            <div className="flex items-center gap-2">
+                              <UserCircle className="w-5 h-5 text-blue-600" />
+                              <span className="font-bold text-sm">Patient</span>
+                            </div>
+                          </Label>
+                          <Label htmlFor="type-hospital" className="flex items-center gap-3 p-4 rounded-2xl border-2 border-slate-100 bg-slate-50/50 cursor-pointer hover:bg-white transition-all peer-data-[state=checked]:border-blue-600 peer-data-[state=checked]:bg-blue-50">
+                            <RadioGroupItem value="hospital" id="type-hospital" className="text-blue-600" />
+                            <div className="flex items-center gap-2">
+                              <Building2 className="w-5 h-5 text-blue-600" />
+                              <span className="font-bold text-sm">Hospital</span>
+                            </div>
+                          </Label>
+                        </RadioGroup>
+                      </FormItem>
                     )}
-                  </button>
-                </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        {formType === 'signup' && (
-          <FormField
-            control={form.control}
-            name="confirmPassword"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Confirm Password</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500" />
-                    <Input
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      placeholder="Confirm your password"
-                      {...field}
-                      className="pr-10 pl-10"
-                      suppressHydrationWarning
-                    />
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setShowConfirmPassword(!showConfirmPassword)
-                      }
-                      className="absolute inset-y-0 right-0 flex items-center pr-3"
-                      aria-label={
-                        showConfirmPassword
-                          ? 'Hide password'
-                          : 'Show password'
-                      }
-                      suppressHydrationWarning
-                    >
-                      {showConfirmPassword ? (
-                        <EyeOff className="h-5 w-5 text-gray-500" />
-                      ) : (
-                        <Eye className="h-5 w-5 text-gray-500" />
+                  />
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-sm font-bold text-slate-700">Full Name</FormLabel>
+                          <div className="relative">
+                            <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                            <Input {...field} placeholder="Dr. John Doe" className="h-12 pl-12 rounded-xl bg-slate-50 border-slate-100 focus:bg-white transition-all shadow-sm" />
+                          </div>
+                          <FormMessage />
+                        </FormItem>
                       )}
-                    </button>
+                    />
+                    <FormField
+                      control={form.control}
+                      name="age"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-sm font-bold text-slate-700">Age</FormLabel>
+                          <div className="relative">
+                            <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                            <Input {...field} type="number" placeholder="24" className="h-12 pl-12 rounded-xl bg-slate-50 border-slate-100 focus:bg-white transition-all shadow-sm" />
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        )}
-      </>
-    );
-  };
+                </div>
+              )}
 
-  const getButtonText = () => {
-    switch (formType) {
-      case 'login':
-        return 'Login to Account';
-      case 'signup':
-        return 'Create Account';
-      case 'forgotPassword':
-        return 'Send Reset Link';
-    }
-  };
+              <FormField
+                control={form.control}
+                name="aadhaar"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm font-bold text-slate-700">Aadhaar Number</FormLabel>
+                    <div className="relative">
+                      <Shield className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <Input
+                        {...field}
+                        placeholder="XXXX-XXXX-XXXX"
+                        maxLength={12}
+                        className="h-12 pl-12 pr-12 rounded-xl bg-slate-50 border-slate-100 focus:bg-white transition-all shadow-sm font-medium tracking-widest"
+                      />
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                        <div className="w-5 h-5 bg-slate-100 rounded-md flex items-center justify-center">
+                          <Shield className="w-3 h-3 text-slate-400" />
+                        </div>
+                      </div>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-  const renderFooter = () => {
-    if (formType === 'forgotPassword') {
-      return (
-        <div className="mt-6 text-center text-sm text-gray-600">
-          Remembered your password?{' '}
-          <Button
-            variant="link"
-            className="p-0 h-auto font-semibold text-blue-600"
-            onClick={() => setFormType('login')}
-            suppressHydrationWarning
-          >
-            Login
-          </Button>
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="flex justify-between items-center mb-0.5">
+                      <FormLabel className="text-sm font-bold text-slate-700">Password</FormLabel>
+                      <button
+                        type="button"
+                        onClick={() => setFormType('forgotPassword')}
+                        className="text-[11px] font-bold text-blue-600 hover:text-blue-700 transition-colors uppercase tracking-wider"
+                      >
+                        Forgot Password?
+                      </button>
+                    </div>
+                    <div className="relative">
+                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <Input
+                        {...field}
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder="••••••••"
+                        className="h-12 pl-12 pr-12 rounded-xl bg-slate-50 border-slate-100 focus:bg-white transition-all shadow-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {formType === 'signup' && (
+                <FormField
+                  control={form.control}
+                  name="confirmPassword"
+                  render={({ field }) => (
+                    <FormItem className="animate-in fade-in slide-in-from-top-2 duration-200">
+                      <FormLabel className="text-sm font-bold text-slate-700">Confirm Password</FormLabel>
+                      <div className="relative">
+                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <Input {...field} type="password" placeholder="••••••••" className="h-12 pl-12 rounded-xl bg-slate-50 border-slate-100 focus:bg-white transition-all shadow-sm" />
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              <Button
+                type="submit"
+                disabled={loading}
+                className="w-full h-14 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-lg shadow-blue-200 transition-all active:scale-[0.98] gap-2 border-none"
+              >
+                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
+                  <>
+                    <span>{formType === 'signup' ? 'Create Account' : 'Login to Account'}</span>
+                    <ArrowRight className="w-5 h-5" />
+                  </>
+                )}
+              </Button>
+            </form>
+          </Form>
+
+          <div className="space-y-6">
+            <div className="relative flex items-center justify-center">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-slate-100"></div>
+              </div>
+              <span className="relative px-4 py-1 text-[10px] font-black text-slate-300 bg-white uppercase tracking-[0.2em]">Secure Access</span>
+            </div>
+
+            <Button
+              variant="outline"
+              className="w-full h-12 rounded-xl border-slate-100 text-slate-500 font-bold text-sm gap-2 hover:bg-slate-50"
+            >
+              <HelpCircle className="w-4 h-4" />
+              Need Help or Support?
+            </Button>
+          </div>
         </div>
-      );
-    }
-
-    return (
-      <div className="mt-6 text-center text-sm text-gray-600">
-        {formType === 'login'
-          ? "Don't have an account?"
-          : 'Already have an account?'}{' '}
-        <Button
-          variant="link"
-          className="p-0 h-auto font-semibold text-blue-600"
-          onClick={() =>
-            setFormType(formType === 'login' ? 'signup' : 'login')
-          }
-          suppressHydrationWarning
-        >
-          {formType === 'login' ? 'Sign up' : 'Login'}
-        </Button>
       </div>
-    );
-  };
 
-  return (
-    <div className="w-full max-w-lg p-8 space-y-6 bg-white/80 backdrop-blur-md rounded-2xl shadow-2xl">
-      <Branding />
-
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <div className="space-y-4">{renderFormFields()}</div>
-
-          <Button
-            type="submit"
-            className="w-full font-semibold bg-blue-600 hover:bg-blue-700 text-white"
-            disabled={loading}
-            suppressHydrationWarning
+      <div className="text-center">
+        <p className="text-sm font-medium text-slate-500">
+          {formType === 'login' ? "Don't have an account? " : "Already have an account? "}
+          <button
+            onClick={() => setFormType(formType === 'login' ? 'signup' : 'login')}
+            className="text-blue-600 font-bold hover:underline underline-offset-4"
           >
-            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {getButtonText()}
-            {formType === 'login' && <ArrowRight className="ml-2 h-4 w-4" />}
-          </Button>
-        </form>
-      </Form>
-
-      {renderFooter()}
+            {formType === 'login' ? 'Sign up now' : 'Login here'}
+          </button>
+        </p>
+      </div>
     </div>
-  );
-}
-
-export function AuthForm() {
-  const [formType, setFormType] = useState<FormType>('login');
-  return (
-    <AuthFormCore
-      key={formType}
-      formType={formType}
-      setFormType={setFormType}
-    />
   );
 }
