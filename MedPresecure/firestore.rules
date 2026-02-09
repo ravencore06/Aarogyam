@@ -101,103 +101,88 @@ service cloud.firestore {
      * @deny (list) Any user attempting to list all patients in the system.
      * @principle Restricts access to a user's own data tree and prevents user enumeration.
      */
-    match /patients/{patientId} {
-      allow get: if isOwner(patientId);
-      allow list: if false;
-      allow create: if isOwner(patientId) && hasValidPatientId(patientId);
-      allow update: if isExistingOwner(patientId) && isPatientIdImmutable();
-      allow delete: if isExistingOwner(patientId);
+    /**
+     * Checks if the authenticated user is a hospital.
+     */
+    function isHospital() {
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userType == 'hospital';
     }
 
     /**
-     * @description Secures the prescriptions belonging to a specific patient.
-     * @path /patients/{patientId}/prescriptions/{prescriptionId}
-     * @allow (create) The patient creating a new prescription for themselves.
-     * @deny (get) An authenticated user trying to read another patient's prescription.
-     * @principle Enforces document ownership via path parameter for all operations.
+     * Checks if the authenticated user is a patient.
+     */
+    function isPatient() {
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userType == 'patient';
+    }
+
+    // ------------------------------------------------------------------------
+    // Collection Rules
+    // ------------------------------------------------------------------------
+
+    /**
+     * @description Public user profiles created during signup.
+     */
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+    }
+
+    /**
+     * @description patient documents (legacy path or internal).
+     */
+    match /patients/{patientId} {
+      allow get: if isOwner(patientId) || isHospital();
+      allow list: if isHospital();
+      allow create: if isOwner(patientId);
+      allow update: if isOwner(patientId);
+      allow delete: if isOwner(patientId);
+    }
+
+    /**
+     * @description Secures prescriptions. Only hospitals can create/update. Patients can only read.
      */
     match /patients/{patientId}/prescriptions/{prescriptionId} {
-      allow get: if isOwner(patientId);
-      allow list: if isOwner(patientId);
-      allow create: if isOwner(patientId) && hasValidPatientLink(patientId);
-      allow update: if isExistingOwner(patientId) && isPatientLinkImmutable();
-      allow delete: if isExistingOwner(patientId);
+      allow read: if isOwner(patientId) || isHospital();
+      allow create, update: if isHospital();
+      allow delete: if isHospital();
     }
 
     /**
-     * @description Secures the appointments belonging to a specific patient.
-     * @path /patients/{patientId}/appointments/{appointmentId}
-     * @allow (list) The patient listing their own upcoming appointments.
-     * @deny (update) Any user attempting to modify another patient's appointment.
-     * @principle Enforces document ownership via path parameter for all operations.
+     * @description Secures appointments. Both can read, patients create, hospitals update.
      */
     match /patients/{patientId}/appointments/{appointmentId} {
-      allow get: if isOwner(patientId);
-      allow list: if isOwner(patientId);
-      allow create: if isOwner(patientId) && hasValidPatientLink(patientId);
-      allow update: if isExistingOwner(patientId) && isPatientLinkImmutable();
-      allow delete: if isExistingOwner(patientId);
+      allow read: if isOwner(patientId) || isHospital();
+      allow create: if isOwner(patientId);
+      allow update: if isOwner(patientId) || isHospital();
+      allow delete: if isOwner(patientId) || isHospital();
     }
 
     /**
-     * @description Secures the file uploads belonging to a specific patient.
-     * @path /patients/{patientId}/uploads/{uploadId}
-     * @allow (delete) The patient deleting one of their own uploaded files.
-     * @deny (create) A user trying to upload a file to another patient's record.
-     * @principle Enforces document ownership via path parameter for all operations.
-     */
-    match /patients/{patientId}/uploads/{uploadId} {
-      allow get: if isOwner(patientId);
-      allow list: if isOwner(patientId);
-      allow create: if isOwner(patientId) && hasValidPatientLink(patientId);
-      allow update: if isExistingOwner(patientId) && isPatientLinkImmutable();
-      allow delete: if isExistingOwner(patientId);
-    }
-    
-    /**
-     * @description Secures notifications for a specific patient.
-     * @path /patients/{patientId}/notifications/{notificationId}
-     * @allow (read, write) The user managing their own notifications.
-     * @principle Enforces document ownership for notifications.
-     */
-    match /patients/{patientId}/notifications/{notificationId} {
-      allow read, write: if isOwner(patientId);
-    }
-
-    /**
-     * @description Manages doctor profiles. This data is considered public and can be read by anyone,
-     *              including unauthenticated users, to populate lists of available doctors. Writes are disabled.
-     * @path /doctors/{doctorId}
-     * @allow (get, list) Any user, authenticated or not, reading doctor profiles.
-     * @deny (create, update, delete) Any client trying to modify the list of doctors.
-     * @principle Provides public read access while preventing client-side modification of shared data.
+     * @description Secure top-level doctor directory. Hospitals can manage their doctors.
      */
     match /doctors/{doctorId} {
-      allow get, list: if true;
-      allow create, update, delete: if false;
-    }
-    
-    /**
-     * @description Secures appointments in the top-level collection. 
-     *              This collection is used for booking and ensuring doctors' availability.
-     * @path /appointments/{appointmentId}
-     * @allow (read) Any authenticated user can read appointment data, necessary for checking availability.
-     * @allow (create) Any authenticated user can create a new appointment.
-     * @allow (update, delete) Only the patient who booked the appointment can update or delete it.
-     */
-    match /appointments/{appointmentId} {
-        allow read, create: if isSignedIn();
-        allow update, delete: if isOwner(resource.data.patientId);
+      allow read: if true;
+      allow create, update, delete: if isHospital();
     }
 
     /**
-     * @description Secures user-specific settings.
-     * @path /userSettings/{userId}
-     * @allow (read, write) The user modifying their own settings.
-     * @principle Enforces document ownership for user preferences.
+     * @description Secures hospital-specific settings and data.
      */
-    match /userSettings/{userId} {
-      allow read, write: if isOwner(userId);
+    match /hospitals/{hospitalId} {
+      allow read: if true;
+      allow write: if isHospital();
     }
+
+    /**
+     * @description legacy appointments path.
+     */
+    match /appointments/{appointmentId} {
+      allow read: if isSignedIn();
+      allow create: if isPatient();
+      allow update: if isOwner(resource.data.patientId) || isHospital();
+    }
+  }
+}
   }
 }
