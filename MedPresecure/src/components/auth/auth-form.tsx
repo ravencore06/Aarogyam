@@ -47,14 +47,14 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-// Helper to convert Aadhaar/Mobile to dummy email for Firebase Auth
-const toDummyEmail = (id: string) => `${id}@medpreserve.app`;
+// Helper to convert ABHA/Mobile to dummy email for Firebase Auth
+const toDummyEmail = (id: string) => `${id}@aarogyam.app`;
 
-const aadhaarRegex = new RegExp(/^\d{12}$/);
-const aadhaarError = 'Aadhaar Number must be 12 digits.';
+const abhaRegex = new RegExp(/^\d{14}$/);
+const abhaError = 'ABHA Number must be 14 digits.';
 
 const LoginSchema = z.object({
-  aadhaar: z.string().regex(aadhaarRegex, { message: aadhaarError }),
+  abha: z.string().regex(abhaRegex, { message: abhaError }),
   password: z.string().min(6, 'Password must be at least 6 characters.'),
 });
 
@@ -65,7 +65,7 @@ const SignupSchema = z
     }),
     name: z.string().min(2, 'Name must be at least 2 characters.'),
     age: z.coerce.number().min(1, 'Age must be at least 1').max(120, 'Age must be less than 120'),
-    aadhaar: z.string().regex(aadhaarRegex, { message: aadhaarError }),
+    abha: z.string().regex(abhaRegex, { message: abhaError }),
     password: z.string().min(6, 'Password must be at least 6 characters.'),
     confirmPassword: z.string(),
   })
@@ -75,7 +75,7 @@ const SignupSchema = z
   });
 
 const ForgotPasswordSchema = z.object({
-  aadhaar: z.string().regex(aadhaarRegex, { message: aadhaarError }),
+  abha: z.string().regex(abhaRegex, { message: abhaError }),
 });
 
 type FormType = 'login' | 'signup' | 'forgotPassword';
@@ -101,9 +101,9 @@ export function AuthForm() {
   const form = useForm<z.infer<typeof currentSchema>>({
     resolver: zodResolver(currentSchema),
     defaultValues:
-      formType === 'login' ? { aadhaar: '', password: '' } :
-        formType === 'signup' ? { userType: 'patient', name: '', age: 0, aadhaar: '', password: '', confirmPassword: '' } :
-          { aadhaar: '' },
+      formType === 'login' ? { abha: '', password: '' } :
+        formType === 'signup' ? { userType: 'patient', name: '', age: 0, abha: '', password: '', confirmPassword: '' } :
+          { abha: '' },
   });
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -122,7 +122,7 @@ export function AuthForm() {
 
   const onSubmit = async (data: any) => {
     setLoading(true);
-    const email = toDummyEmail(data.aadhaar);
+    const email = toDummyEmail(data.abha);
 
     try {
       if (formType === 'login') {
@@ -153,14 +153,14 @@ export function AuthForm() {
             userType: data.userType,
             name: data.name,
             age: data.age,
-            aadhaarNumber: data.aadhaar,
+            abhaNumber: data.abha,
             photoURL: photoURL,
             email: email,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
           });
         }
-        toast({ title: 'Account created', description: 'Welcome to MedPreserve' });
+        toast({ title: 'Account created', description: 'Welcome to Aarogyam' });
         router.push(data.userType === 'hospital' ? '/hospital-dashboard' : '/dashboard');
       } else if (formType === 'forgotPassword') {
         await sendPasswordResetEmail(auth, email);
@@ -206,7 +206,7 @@ export function AuthForm() {
             <p className="text-slate-500 font-medium">
               {formType === 'login'
                 ? 'Please enter your details to access your dashboard.'
-                : 'Join MedPreserve to start managing your health history.'}
+                : 'Join Aarogyam to start managing your health history.'}
             </p>
           </div>
 
@@ -276,16 +276,16 @@ export function AuthForm() {
 
               <FormField
                 control={form.control}
-                name="aadhaar"
+                name="abha"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm font-bold text-slate-700">Aadhaar Number</FormLabel>
+                    <FormLabel className="text-sm font-bold text-slate-700">ABHA Number</FormLabel>
                     <div className="relative">
                       <Shield className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                       <Input
                         {...field}
-                        placeholder="XXXX-XXXX-XXXX"
-                        maxLength={12}
+                        placeholder="XX-XXXX-XXXX-XXXX"
+                        maxLength={14}
                         className="h-12 pl-12 pr-12 rounded-xl bg-slate-50 border-slate-100 focus:bg-white transition-all shadow-sm font-medium tracking-widest"
                       />
                       <div className="absolute right-4 top-1/2 -translate-y-1/2">

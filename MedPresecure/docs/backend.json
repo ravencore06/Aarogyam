@@ -10,9 +10,9 @@
           "type": "string",
           "description": "Unique identifier for the Patient entity."
         },
-        "aadhaarNumber": {
+        "abhaNumber": {
           "type": "string",
-          "description": "Patient's Aadhaar number (used as primary identifier)."
+          "description": "Patient's ABHA number (used as primary identifier)."
         },
         "name": {
           "type": "string",
@@ -42,7 +42,7 @@
       },
       "required": [
         "id",
-        "aadhaarNumber",
+        "abhaNumber",
         "name"
       ]
     },
@@ -91,9 +91,13 @@
           "description": "Additional notes about the prescription."
         },
         "status": {
-            "type": "string",
-            "description": "The current status of the prescription.",
-            "enum": ["Active", "Completed", "Emergency"]
+          "type": "string",
+          "description": "The current status of the prescription.",
+          "enum": [
+            "Active",
+            "Completed",
+            "Emergency"
+          ]
         }
       },
       "required": [
@@ -186,7 +190,11 @@
         "gender": {
           "type": "string",
           "description": "Doctor's gender.",
-          "enum": ["Male", "Female", "Other"]
+          "enum": [
+            "Male",
+            "Female",
+            "Other"
+          ]
         },
         "experience": {
           "type": "number",
@@ -329,19 +337,33 @@
         "notificationPreferences": {
           "type": "object",
           "properties": {
-            "medicationReminders": { "type": "boolean", "default": true },
-            "appointmentAlerts": { "type": "boolean", "default": true },
-            "labResults": { "type": "boolean", "default": false }
+            "medicationReminders": {
+              "type": "boolean",
+              "default": true
+            },
+            "appointmentAlerts": {
+              "type": "boolean",
+              "default": true
+            },
+            "labResults": {
+              "type": "boolean",
+              "default": false
+            }
           }
         },
         "privacySettings": {
           "type": "object",
           "properties": {
-            "shareDataWithDoctors": { "type": "boolean", "default": true }
+            "shareDataWithDoctors": {
+              "type": "boolean",
+              "default": true
+            }
           }
         }
       },
-      "required": ["id"]
+      "required": [
+        "id"
+      ]
     }
   },
   "auth": {
@@ -401,9 +423,11 @@
         },
         "description": "Top-level collection for all appointments, used for booking and availability checks."
       },
-       {
+      {
         "path": "/userSettings/{userId}",
-        "schema": { "$ref": "#/entities/UserSettings" },
+        "schema": {
+          "$ref": "#/entities/UserSettings"
+        },
         "description": "Stores user-specific settings. The document ID is the user's UID."
       }
     ]

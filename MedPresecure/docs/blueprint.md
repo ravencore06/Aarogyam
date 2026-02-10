@@ -1,9 +1,9 @@
-# **App Name**: MedPresecure Login
+# **App Name**: Aarogyam Login
 
 ## Core Features:
 
-- Login: Allow users to log in using their Aadhaar number and password, utilizing Firebase Authentication by converting the Aadhaar number into a dummy email format.
-- Sign Up: Enable new users to create accounts with their Aadhaar number and password.
+- Login: Allow users to log in using their ABHA number and password, utilizing Firebase Authentication by converting the ABHA number into a dummy email format.
+- Sign Up: Enable new users to create accounts with their ABHA number and password.
 - Forgot Password: Allow users to reset their password if they have forgotten it.
 - Show Password: Allow users to reveal or hide their password for easier entry and verification.
 - Dual-Panel Layout: Implement a split-screen layout with a branding section on the left and a login form on the right.

@@ -20,7 +20,7 @@ export default function Home() {
             <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center border border-white/30 shadow-lg">
               <Shield className="w-7 h-7 text-white" />
             </div>
-            <span className="text-2xl font-black text-white tracking-tight">MedPreserve</span>
+            <span className="text-2xl font-black text-white tracking-tight">Aarogyam</span>
           </div>
 
           {/* Value Proposition */}
@@ -47,7 +47,7 @@ export default function Home() {
 
           {/* Footer */}
           <p className="text-xs font-bold text-cyan-200/60 tracking-wider">
-            © {new Date().getFullYear()} MedPreserve Inc. All rights reserved.
+            © {new Date().getFullYear()} Aarogyam. All rights reserved.
           </p>
         </div>
       </div>
